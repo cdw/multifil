@@ -357,7 +357,7 @@ class ThickFilament(object):
     def __str__(self):
         """String representation of the thick filament"""
         faces = '' .join(["Face " + str(face.orientation) + ": \n" +
-                    face.__repr__() + '\n'
+                    face.__str__() + '\n'
                     for face in self.thick_faces])
         return faces
     
