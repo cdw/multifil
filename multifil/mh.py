@@ -555,7 +555,7 @@ class Crossbridge(Head):
         # Remember if thou art bound unto an actin
         self.bound_to = None # None if unbound, BindingSite object otherwise
     
-    def __repr__(self):
+    def __str__(self):
         """String representation of the cross-bridge"""
         out = '__XB_%02d__State_%s__Forces_%d_%d__'%(
             self.face_index, self.state,

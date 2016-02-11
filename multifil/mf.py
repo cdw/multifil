@@ -148,7 +148,7 @@ class ThickFace(object):
         # Record the thick filament node index at which cross-bridge sits
         self.xb_index = [xb.face_index for xb in self.xb]
     
-    def __repr__(self):
+    def __str__(self):
         """The string representation of the thick filament face
         The representation is as follows:
             Thick -    |====================
@@ -354,7 +354,7 @@ class ThickFilament(object):
         self.k = 2020 # Spring constant of thick filament in pN/nm
         self.b_z = bare_zone
     
-    def __repr__(self):
+    def __str__(self):
         """String representation of the thick filament"""
         faces = '' .join(["Face " + str(face.orientation) + ": \n" +
                     face.__repr__() + '\n'

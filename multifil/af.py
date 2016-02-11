@@ -33,7 +33,7 @@ class BindingSite(object):
         self.bound_to = None # None if unbound, Crossbridge object otherwise
         self.thick_face = None 
     
-    def __repr__(self):
+    def __str__(self):
         """Return the current situation of the binding site"""
         ident = ['Binding Site #' + str(self.thin_index) + ' Info']
         ident.append(14 * '=')
