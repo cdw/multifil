@@ -132,7 +132,7 @@ class ThinFace(object):
         Return:
             binding_site: the nearest binding site on this face
         """
-        # Next two lines of code enforce a jittery hiding, sometimes the 
+        # Next three lines of code enforce a jittery hiding, sometimes the 
         # binding site just beyond the hiding line can be accessed
         hiding_line = self.parent_filament.get_hiding_line()
         axial_location = max(hiding_line, axial_location)
@@ -328,6 +328,8 @@ class ThinFilament(object):
         # Other thin filament properties to remember
         self.number_of_nodes = len(self.binding_sites)
         self.thick_faces = None # Set after creation of thick filaments
+        # TODO: refactor z_line into property that transparently refs the
+        # lattice copy of the spacing
         self.z_line = z_line
         self.k = 1743 
     
@@ -488,11 +490,6 @@ class ThinFilament(object):
         """Return the lattice spacing of the half-sarcomere"""
         return self.parent_lattice.get_lattice_spacing()
     
-    @property
-    def face(self, face_index): # FIXME Current point, trying to get property accessing of the thin_faces down, but I am not sure how indexing gets passed to a property, is it like a normal attribute [2] or like a function call (2)?
-        """Return the thin face of the passed index"""
-        return self.thin_faces[face_index]
-
 
 if __name__ == '__main__':
     print("af.py is really meant to be called as a supporting module")

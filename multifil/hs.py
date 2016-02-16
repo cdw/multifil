@@ -42,7 +42,8 @@ class hs(object):
         h_line: 
             x axis location of the h line
         hiding_line:
-            x axis location below which actin sites are hidden
+            x axis location below which actin sites are hidden by actin
+            overlap (crossing through the m-line from adjacent half sarc)
         
         ## Thick Filament Properties: each is a tuple of thick filaments 
         (filament_0, filament_1, filament_2, filament_3) where each 

@@ -560,13 +560,6 @@ class Crossbridge(Head):
         out = '__XB_%02d__State_%s__Forces_%d_%d__'%(
             self.face_index, self.state,
             self.axialforce(), self.radialforce())
-        #out = '__XB_%02d_on_Face_%1d__ \n'%(
-        #        self.face_index, self.face_parent.orientation)
-        #if self.bound_to is None:
-        #    out += 'State: Unbound \n'
-        #else:
-        #    out += 'State: Bound, %s \n'%super(Crossbridge, self).state
-        #    out += 'Forces: %d/%d pN (ax/rad) \n'%(self.axialforce, self.radialforce)
         return out
     
     def transition(self):
