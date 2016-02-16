@@ -134,7 +134,7 @@ class ThinFace(object):
         """
         # Next three lines of code enforce a jittery hiding, sometimes the 
         # binding site just beyond the hiding line can be accessed
-        hiding_line = self.parent_filament.get_hiding_line()
+        hiding_line = self.parent_filament.hiding_line
         axial_location = max(hiding_line, axial_location)
         face_locs = [site.get_axial_location() for site in self.binding_sites]
         close_index = np.searchsorted(face_locs, axial_location)
@@ -236,8 +236,7 @@ class ThinFilament(object):
     are numbered from low at the left to high on the right. Thus the 90th 
     node is adjacent to the Z-line.
     """
-    def __init__(self, parent_lattice, face_orientations, z_line=1250, 
-                 start=0):
+    def __init__(self, parent_lattice, face_orientations, start=0):
         """Initialize the thin filament
         
         Parameters:
@@ -282,8 +281,9 @@ class ThinFilament(object):
         pitch = polymer_base_turns * rev / mono_per_poly
         rise = polymer_base_length / mono_per_poly
         # Monomer positions start near the m-line
-        monomer_positions = [(z_line - mono_per_poly*poly_per_fil*rise) + m*rise
-                for m in range(mono_per_poly*poly_per_fil)] 
+        monomer_positions = [(
+            self.z_line - mono_per_poly*poly_per_fil*rise) + m*rise
+            for m in range(mono_per_poly*poly_per_fil)] 
         monomer_angles = [(((m+start+1) % mono_per_poly) * pitch) % rev 
                 for m in range(mono_per_poly * poly_per_fil)]
         # Convert face orientations to angles, then to angles from 0 to 2pi
@@ -324,13 +324,10 @@ class ThinFilament(object):
         del(orientation, face_binding_sites)
         # Remember the axial locations, both current and rest
         self.axial = axial_flat
-        self.rests = np.diff(np.hstack([self.axial, z_line]))
+        self.rests = np.diff(np.hstack([self.axial, self.z_line]))
         # Other thin filament properties to remember
         self.number_of_nodes = len(self.binding_sites)
         self.thick_faces = None # Set after creation of thick filaments
-        # TODO: refactor z_line into property that transparently refs the
-        # lattice copy of the spacing
-        self.z_line = z_line
         self.k = 1743 
     
     def set_thick_faces(self, thick_faces):
@@ -470,15 +467,21 @@ class ThinFilament(object):
         assert(len(flat_axial_locs) == len(self.axial))
         self.axial = flat_axial_locs
     
-    def get_hiding_line(self):
+    @property
+    def z_line(self):
+        return self.parent_lattice.z_line
+    
+    @property
+    def hiding_line(self):
         """Return the distance below which actin binding sites are hidden"""
-        return self.parent_lattice.get_hiding_line()
+        return self.parent_lattice.hiding_line
     
     def get_binding_site(self, index):
         """Return a link to the binding site site at index"""
         return self.binding_sites[index]
     
-    def get_bound_sites(self):
+    @property
+    def bound_sites(self):
         """Give a list of binding sites that are bound to an XB"""
         return filter(lambda bs: bs.bound_to is not None, self.binding_sites)
     

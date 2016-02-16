@@ -106,10 +106,10 @@ class hs(object):
         # Create the thin filaments, unlinked but oriented on creation.
         thin_orientations = ([4,0,2], [3,5,1], [4,0,2], [3,5,1], 
                 [3,5,1], [4,0,2], [3,5,1], [4,0,2]) 
-        self.thin = tuple([af.ThinFilament(self, orientation, z_line) for 
+        self.thin = tuple([af.ThinFilament(self, orientation) for 
             orientation in thin_orientations])
         # Determine the hiding line
-        self.set_hiding_line()
+        self._hiding_line = None
         # Create the thick filaments, remembering they are arranged thus:
         # ----------------------------
         # |   Actin around myosin    |
@@ -386,14 +386,16 @@ class hs(object):
         """Return the current lattice spacing"""
         return self.lattice_spacing
     
-    def get_hiding_line(self):
+    @property
+    def hiding_line(self):
         """Return the distance below which actin binding sites are hidden"""
-        return self.hiding_line
+        return self._hiding_line
 
+    @hiding_line.setter
     def set_hiding_line(self):
         """Update the line determining which actin sites are unavailable"""
         farthest_actin = min([min(thin.axial) for thin in self.thin])
-        self.hiding_line = -farthest_actin
+        self._hiding_line = -farthest_actin
     
     def display_axial_force_end(self):
         """ Show an end view with axial forces of face pairs
