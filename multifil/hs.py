@@ -334,9 +334,17 @@ class hs(object):
                 state_count[-1].append(count)
         return state_count
     
-    def _set_timestep(self, timestep):
+    @property
+    def timestep_len(self):
+        """Get the length of the time step in ms"""
+        return self._timestep_len
+    
+    @timestep_len.setter
+    def set_timestep_len(self, new_ts_len):
         """Set the length of the time step in ms"""
-        [thick._set_timestep(timestep) for thick in self.thick]
+        self._timestep_len = new_ts_len
+        [thick._set_timestep(self._timestep_len) for thick in self.thick]
+        return
     
     def set_latticespacing(self, ls):
         """Set the distance between the faces of adjacent filaments"""
