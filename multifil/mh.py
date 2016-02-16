@@ -409,9 +409,14 @@ class Head(object):
         lookup_state = {"free":0, "loose":1, "tight":2}
         return lookup_state[self.state]
     
-    def _set_timestep(self, timestep):
+    @property 
+    def timestep(self):
+        return self._timestep
+    
+    @timestep.setter
+    def timestep(self, timestep):
         """Set the length of time step used to calculate transitions"""
-        self.timestep = timestep
+        self._timestep = timestep
     
     def _bind(self, bs):
         """Bind (or don't) based on the distance from the Head tip to a Actin

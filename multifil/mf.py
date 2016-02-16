@@ -66,7 +66,8 @@ class Crown(object):
     
     def _set_timestep(self, timestep):
         """Set the length of time step used to calculate transitions"""
-        [xb._set_timestep(timestep) for xb in self.crossbridges]
+        for xb in self.crossbridges:
+            xb.timestep = timestep
     
     def get_axial_location(self):
         """Do what it says on the tin, return this crown's axial location"""

@@ -187,6 +187,8 @@ class hs(object):
             self.thick[1].thick_faces[5], self.thick[2].thick_faces[1]))
         self.thin[7].set_thick_faces((self.thick[1].thick_faces[4],
             self.thick[3].thick_faces[0], self.thick[2].thick_faces[2]))
+        # Set the timestep for all our new cross-bridges
+        self.timestep_len = 1
      
     def run(self, time_steps=100, callback=None, bar=True):
         """Run the model for the specified number of timesteps
@@ -340,7 +342,7 @@ class hs(object):
         return self._timestep_len
     
     @timestep_len.setter
-    def set_timestep_len(self, new_ts_len):
+    def timestep_len(self, new_ts_len):
         """Set the length of the time step in ms"""
         self._timestep_len = new_ts_len
         [thick._set_timestep(self._timestep_len) for thick in self.thick]
@@ -400,7 +402,7 @@ class hs(object):
         return self._hiding_line
 
     @hiding_line.setter
-    def set_hiding_line(self):
+    def hiding_line(self):
         """Update the line determining which actin sites are unavailable"""
         farthest_actin = min([min(thin.axial) for thin in self.thin])
         self._hiding_line = -farthest_actin
