@@ -29,6 +29,8 @@ class BindingSite(object):
         orientation_vectors = ((0.866, -0.5), (0, -1), (-0.866, -0.5), 
                 (-0.866, 0.5), (0, 1), (0.866, 0.5))
         self.orientation = orientation_vectors[orientation]
+        # Start off in an activated state, fully open to binding
+        self.permissiveness = 1.0
         # Create attributes to store things not yet present 
         self.bound_to = None # None if unbound, Crossbridge object otherwise
         self.thick_face = None 
@@ -475,6 +477,17 @@ class ThinFilament(object):
     def hiding_line(self):
         """Return the distance below which actin binding sites are hidden"""
         return self.parent_lattice.hiding_line
+    
+    @property
+    def permissiveness(self):
+        """Return the permissiveness of each binding site"""
+        return [site.permissiveness for site in self.binding_sites]
+    
+    @permissiveness.setter
+    def permissiveness(self, new_permissiveness):
+        """Assign all binding sites the new permissiveness"""
+        for site in self.binding_sites:
+            site.permissiveness = new_permissiveness 
     
     def get_binding_site(self, index):
         """Return a link to the binding site site at index"""
