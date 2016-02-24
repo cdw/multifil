@@ -348,6 +348,17 @@ class hs(object):
         [thick._set_timestep(self._timestep_len) for thick in self.thick]
         return
     
+    @property
+    def actin_permissiveness(self):
+        """How active & open to binding, 0 to 1, are binding sites?"""
+        return [thin.permissiveness for thin in self.thin]
+    
+    @actin_permissiveness.setter
+    def actin_permissiveness(self, new_permissiveness):
+        """Assign all binding sites the new permissiveness, 0 to 1"""
+        for thin in self.thin:
+            thin.permissiveness = new_permissiveness 
+    
     def set_latticespacing(self, ls):
         """Set the distance between the faces of adjacent filaments"""
         self.lattice_spacing = ls
