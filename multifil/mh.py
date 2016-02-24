@@ -318,11 +318,12 @@ class Head(object):
         # The time-step, master of all time
         self.timestep = 1 # ms
     
-    def transition(self, bs):
+    def transition(self, bs, ap):
         """Transition to a new state (or not)
         
         Takes:
             bs: relative Crown to Actin distance (x,y)
+            ap: Actin binding permissiveness, from 0 to 1
         Returns:
             boolean: transition that occurred (as string) or None
         """
@@ -330,14 +331,14 @@ class Head(object):
         check = random.rand()
         ## Check for transitions depending on the current state
         if self.state == "free":
-            if self._bind(bs) > check: 
+            if self._bind(bs, ap) > check: 
                 self.state = "loose"
                 return '12'
         elif self.state == "loose":
             if self._r23(bs) > check: 
                 self.state = "tight"
                 return '23'
-            elif self._r21(bs) > check: 
+            elif self._r21(bs, ap) > check: 
                 self.state = "free"
                 return '21'
         elif self.state == "tight":
@@ -418,11 +419,12 @@ class Head(object):
         """Set the length of time step used to calculate transitions"""
         self._timestep = timestep
     
-    def _bind(self, bs):
+    def _bind(self, bs, ap):
         """Bind (or don't) based on the distance from the Head tip to a Actin
         
         Takes:
             bs: relative Crown to Actin distance (x,y)
+            ap: Actin binding permissiveness, from 0 to 1
         Returns:
             probability: chance of binding occurring
         """
@@ -441,10 +443,12 @@ class Head(object):
         ## The binding prob is dependent on the exp of the dist
         # Prob = \tau * \exp^{-dist^2} * timestep 
         probability = 72 * m.exp(-distance**2) * self.timestep
+        ## The binding prob is conditioned by the actin permissiveness
+        probability *= ap
         ## Return the probability
         return probability
     
-    def _r21(self, bs):
+    def _r21(self, bs, ap):
         """The reverse transition, from loosely bound to unbound
         
         This depends on the rate r12, the binding rate, which is given
@@ -461,7 +465,7 @@ class Head(object):
         loose_free_energy = self._free_energy(bs, "loose")
         ## Rate, as in pg 1209 of Tanner et al, 2007
         ## With added reduced-detachment factor, increases dwell time
-        rate = self._bind(bs) / m.exp(unbound_free_energy - loose_free_energy)
+        rate = self._bind(bs, ap) / m.exp(unbound_free_energy - loose_free_energy)
         return float(rate)
     
     def _r23(self, bs):
@@ -584,12 +588,14 @@ class Crossbridge(Head):
             # Find the potential binding site
             actin_site = self.thin_face.nearest(xb_axial_loc)
             actin_axial_loc = actin_site.get_axial_location()
+            actin_state = actin_site.permissiveness
             # Find the axial separation 
             axial_sep = actin_axial_loc - xb_axial_loc
             # Combine the two distances
             distance_to_site = (axial_sep, lattice_spacing)
             # Allow the myosin head to take it from here
-            trans = super(Crossbridge, self).transition(distance_to_site)
+            trans = super(Crossbridge, self).transition(distance_to_site,
+                                                        actin_state)
             # Process changes to bound state
             if trans == '12':
                 self.bound_to = actin_site
@@ -599,8 +605,10 @@ class Crossbridge(Head):
         else:
             # Get the distance to the actin site
             distance_to_site = self._dist_to_bound_actin()
+            actin_state = self.bound_to.permissiveness
             # Allow the myosin head to take it from here
-            trans = super(Crossbridge, self).transition(distance_to_site)
+            trans = super(Crossbridge, self).transition(distance_to_site,
+                                                        actin_state) 
             # Process changes to the bound state
             if trans in set(('21', '31')):
                 self.bound_to.bind_to(None)
