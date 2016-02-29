@@ -393,10 +393,6 @@ class hs(object):
         for thin in self.thin:
             thin.permissiveness = new_permissiveness 
     
-    def set_latticespacing(self, ls):
-        """Set the distance between the faces of adjacent filaments"""
-        self.lattice_spacing = ls
-    
     def get_frac_in_states(self):
         """Calculate the fraction of cross-bridges in each state"""
         nested = [t.get_states() for t in self.thick]
