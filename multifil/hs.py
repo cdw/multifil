@@ -18,12 +18,22 @@ import mf
 
 class hs(object):
     """The half-sarcomere and ways to manage it"""
-    def __init__(self, lattice_spacing=None, z_line=None):
+    def __init__(self, lattice_spacing=None, z_line=None,
+                actin_permissiveness=None, timestep_len=1,
+                time_dependence=None):
         """ Create the data structure that is the half-sarcomere model
         
         Parameters: 
             lattice_spacing: the surface-to-surface distance (14.0)
             z_line: the length of the half-sarcomere (1250)
+            actin_permissiveness: how open actin sites are to binding (1.0)
+            timestep_len: how many ms per timestep (1)
+            time_dependence: a dictionary to override the initial lattice
+                spacing, sarcomere length, and actin permissiveness at each 
+                timestep. Valid keys are "lattice_spacing", "z_line", and
+                "actin_permissiveness". Each key may contain a list of the
+                values, to be iterated over as timesteps proceed. The first
+                entry in these lists will override passed initial values. 
         Returns:
             None
         
@@ -93,12 +103,18 @@ class hs(object):
             any given pair of thin binding sites
         
         """
-        # Default LS and Z-line, using None to simplify calling
+        # Parse initial LS and Z-line
+        if time_dependence is not None:
+            if 'lattice_spacing' in time_dependence:
+                lattice_spacing = time_dependence['lattice_spacing'][0] 
+            if 'z_line' in time_dependence:
+                z_line = time_dependence['z_line'][0] 
         if lattice_spacing is None:
             lattice_spacing = 14.0
         if z_line is None:
             z_line = 1250
         # Store these values for posterity
+        self.time_dependence = time_dependence
         self.lattice_spacing = lattice_spacing
         self.z_line = z_line
         # Track how long we've been running
@@ -188,7 +204,15 @@ class hs(object):
         self.thin[7].set_thick_faces((self.thick[1].thick_faces[4],
             self.thick[3].thick_faces[0], self.thick[2].thick_faces[2]))
         # Set the timestep for all our new cross-bridges
-        self.timestep_len = 1
+        self.timestep_len = timestep_len
+        # Set actin_permissiveness for all our new binding sites
+        if time_dependence is not None:
+            if 'actin_permissiveness' in time_dependence:
+                actin_permissiveness = \
+                        time_dependence['actin_permissiveness'][0] 
+        if actin_permissiveness is None:
+                actin_permissiveness = 1.0
+        self.actin_permissiveness = actin_permissiveness
      
     def run(self, time_steps=100, callback=None, bar=True):
         """Run the model for the specified number of timesteps
@@ -233,6 +257,16 @@ class hs(object):
         """Move the model one step forward in time, allowing the 
         myosin heads a chance to bind and then balancing forces
         """
+        # Update boundary conditions
+        td = self.time_dependence
+        i = self.current_timestep
+        if td is not None:
+            if 'lattice_spacing' in td:
+                self.lattice_spacing = td['lattice_spacing'][i] 
+            if 'z_line' in td:
+                self.z_line = td['z_line'][i] 
+            if 'actin_permissiveness' in td:
+                self.actin_permissiveness = td['actin_permissiveness'][i]
         # Record our passage through time
         self.current_timestep += 1
         # Update bound states
