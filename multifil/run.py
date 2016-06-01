@@ -10,7 +10,7 @@ import sys
 import os
 import time
 import uuid
-import cPickle as pickle
+import pickle
 import shelve
 import copy
 import optparse 
@@ -109,7 +109,7 @@ def run(sarc, timesteps, queue=None, folder_name=FOLDER_NAME,
         os.system('7za a -mx=3 %s %s'%(sarc_name+'.7z', sarc_name))
         sarc_name += '.7z'
     except:
-        print "Couldn't compress, is 7zip installed?"
+        print("Couldn't compress, is 7zip installed?")
     # Saving smaller datas
     results['sarc'] = sarc #Nice to have one copy in your hatband
     pickle.dump(results, data_file, 2)
@@ -144,7 +144,7 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     ## Parse arguments into values
-    print argv
+    print(argv)
     parser = optparse.OptionParser(help_mesg)
     parser.add_option('-t', '--timesteps', dest="timesteps",
                       default=10, type='int',
