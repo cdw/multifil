@@ -318,8 +318,8 @@ class ThinFilament(object):
             self.binding_sites.append(BindingSite(self, index, orientation))
         self.thin_faces = []
         for face_index in range(len(node_index_by_face)):
-            face_binding_sites = map(lambda i: self.binding_sites[i],
-                    node_index_by_face[face_index])
+            face_binding_sites = ([self.binding_sites[i] for i in
+                node_index_by_face[face_index]])
             orientation = face_orientations[face_index]
             self.thin_faces.append(
                     ThinFace(self, orientation, face_binding_sites))

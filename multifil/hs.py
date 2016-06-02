@@ -507,7 +507,6 @@ class hs(object):
         # Note: The display requires the form: 
         # [[A0_0,... A0_N], [M0A0_0,... M0A0_N], ...
         #  [M0A1_0,... M0A1_N], [A1_0,... A1_N]]
-        instate = lambda x: x in states
         azo = lambda x: 0 if (x is None) else 1 # Actin limited to zero, one
         oddeven = 0
         vals = []
@@ -515,7 +514,7 @@ class hs(object):
             vals.append([])
             for face in thick.thick_faces:
                 m_s = [xb.get_numeric_state() for xb in face.get_xb()]
-                m_s = map(instate, m_s)
+                m_s = [m in states for m in m_s]
                 while len(m_s) < 40:
                     m_s.append(-1)
                 a_s = [azo(bs.bound_to) for bs in face.thin_face.binding_sites]
@@ -686,10 +685,10 @@ class hs(object):
         else:
             print("  +" + 134*"-" + "+----+")
         # Print the rest
-        vals = [[bl(ends[0])] + map(l, graph_values[0]),
-                map(l, graph_values[1]) + [br(ends[1])],
-                map(l, graph_values[2]),
-                [bl(ends[2])] + map(l, graph_values[3])] # Shorthand
+        vals = [[bl(ends[0])] + list(map(l, graph_values[0])),
+                list(map(l, graph_values[1])) + [br(ends[1])],
+                list(map(l, graph_values[2])),
+                [bl(ends[2])] + list(map(l, graph_values[3]))] # Shorthand
         print( 
         "  | Z-disk                                                                                                                               |    |\n" + 
         "  | ||----*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*                                       | %s |\n" 
