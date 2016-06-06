@@ -106,16 +106,18 @@ class ThinFace(object):
         ||     m1     ||      Y-->
         ================
     """
-    def __init__(self, thin_fil, orientation, binding_sites):
+    def __init__(self, thin_fil, orientation, index, binding_sites):
         """Create the thin filament face
         
         Parameters:
             thin_fil: the thin filament on which this face sits
             orientation: which myosin face is opposite this face (0-5)
+            index: location on the thin filament this face occupies (0-2)
             binding_sites: links to the actin binding sites on this face
         """
         self.parent_filament = thin_fil 
         self.orientation = orientation 
+        self.index = index
         self.binding_sites = binding_sites 
         self.thick_face = None  # ThickFace instance this face interacts with
     
@@ -238,11 +240,12 @@ class ThinFilament(object):
     are numbered from low at the left to high on the right. Thus the 90th 
     node is adjacent to the Z-line.
     """
-    def __init__(self, parent_lattice, face_orientations, start=0):
+    def __init__(self, parent_lattice, index, face_orientations, start=0):
         """Initialize the thin filament
         
         Parameters:
             parent_lattice: the calling half-sarcomere instance
+            index: which thin filament this is (0-7)
             face_orientations: list of faces' numerical orientation (0-5)
             z_line: the location of the end of the thin filament (1250 nm)
             start: which of the 26 actin monomers in an actin
@@ -273,6 +276,8 @@ class ThinFilament(object):
         """
         # Remember who created you
         self.parent_lattice = parent_lattice
+        # Remember who you are
+        self.index = index
         # TODO The creation of the monomer positions and angles should be refactored into a static function of similar.
         # Figure out axial positions
         mono_per_poly = 26 # actin monomers in an actin polymer unit
@@ -295,7 +300,6 @@ class ThinFilament(object):
         face_angles = [np.arctan2(v[1], v[0]) for v in face_vectors]
         face_angles = [v + rev if (v < 0) else v for v in face_angles] 
         # Find which monomers are opposite each face
-        # TODO Convert this to use a distance rather than an angle...
         wiggle = rev/24 # count faces within 15 degrees of opposite
         mono_in_each_face = [np.nonzero(np.abs(np.subtract(monomer_angles, 
             face_angles[i]))<wiggle)[0] for i in range(len(face_angles))]
@@ -322,7 +326,7 @@ class ThinFilament(object):
                 node_index_by_face[face_index]])
             orientation = face_orientations[face_index]
             self.thin_faces.append(
-                    ThinFace(self, orientation, face_binding_sites))
+                ThinFace(self, orientation, face_index, face_binding_sites))
         del(orientation, face_binding_sites)
         # Remember the axial locations, both current and rest
         self.axial = axial_flat

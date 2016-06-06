@@ -122,8 +122,9 @@ class hs(object):
         # Create the thin filaments, unlinked but oriented on creation.
         thin_orientations = ([4,0,2], [3,5,1], [4,0,2], [3,5,1], 
                 [3,5,1], [4,0,2], [3,5,1], [4,0,2]) 
-        self.thin = tuple([af.ThinFilament(self, orientation) for 
-            orientation in thin_orientations])
+        thin_ids = range(len(thin_orientations))
+        new_thin = lambda id: af.ThinFilament(self, id, thin_orientations[id])
+        self.thin = tuple([new_thin(id) for id in thin_ids])
         # Determine the hiding line
         self.update_hiding_line()
         # Create the thick filaments, remembering they are arranged thus:
