@@ -29,6 +29,8 @@ class BindingSite(object):
         orientation_vectors = ((0.866, -0.5), (0, -1), (-0.866, -0.5), 
                 (-0.866, 0.5), (0, 1), (0.866, 0.5))
         self.orientation = orientation_vectors[orientation]
+        # Start off in an activated state, fully open to binding
+        self.permissiveness = 1.0
         # Create attributes to store things not yet present 
         self.bound_to = None # None if unbound, Crossbridge object otherwise
         self.thick_face = None 
@@ -316,8 +318,8 @@ class ThinFilament(object):
             self.binding_sites.append(BindingSite(self, index, orientation))
         self.thin_faces = []
         for face_index in range(len(node_index_by_face)):
-            face_binding_sites = map(lambda i: self.binding_sites[i],
-                    node_index_by_face[face_index])
+            face_binding_sites = ([self.binding_sites[i] for i in
+                node_index_by_face[face_index]])
             orientation = face_orientations[face_index]
             self.thin_faces.append(
                     ThinFace(self, orientation, face_binding_sites))
@@ -475,6 +477,17 @@ class ThinFilament(object):
     def hiding_line(self):
         """Return the distance below which actin binding sites are hidden"""
         return self.parent_lattice.hiding_line
+    
+    @property
+    def permissiveness(self):
+        """Return the permissiveness of each binding site"""
+        return [site.permissiveness for site in self.binding_sites]
+    
+    @permissiveness.setter
+    def permissiveness(self, new_permissiveness):
+        """Assign all binding sites the new permissiveness"""
+        for site in self.binding_sites:
+            site.permissiveness = new_permissiveness 
     
     def get_binding_site(self, index):
         """Return a link to the binding site site at index"""
