@@ -373,7 +373,7 @@ class ThinFilament(object):
         self.k = 1743 
     
     def json_dict(self):
-        """Create a JSON compatible representation of the binding site
+        """Create a JSON compatible representation of the thin filament
         
         Example usage: json.dumps(thin.json_dict(), indent=1)
         
