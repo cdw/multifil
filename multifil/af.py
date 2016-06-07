@@ -157,6 +157,10 @@ class ThinFace(object):
         tfd['binding_sites'] = [bs.address() for bs in tfd['binding_sites']]
         return tfd
     
+    def address(self):
+        """Give the address of the thin face"""
+        return ('thin_face', self.parent_thin.index, self.index)
+    
     def nearest(self, axial_location):
         """Where is the nearest binding site?
         
@@ -394,6 +398,10 @@ class ThinFilament(object):
         thind['binding_sites'] = [bs.json_dict() for bs in \
                                   thind['binding_sites']]
         return thind
+    
+    def address(self):
+        """Give the address of the thin filament"""
+        return ('thin_fil', self.index)
     
     def set_thick_faces(self, thick_faces):
         """Set the adjacent thick faces and associated values
