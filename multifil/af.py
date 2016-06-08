@@ -154,7 +154,7 @@ class ThinFace(object):
         """
         tfd = self.__dict__.copy()
         tfd['parent_thin'] = self.parent_thin.index # no recursive, index
-        tfd.pop('thick_face') # TODO: Replace when mf indexing is complete
+        tfd['thick_face'] = tfd['thick_face'].index
         tfd['binding_sites'] = [bs.address for bs in tfd['binding_sites']]
         return tfd
     
@@ -389,10 +389,10 @@ class ThinFilament(object):
         """
         thind = self.__dict__.copy()
         thind.pop('parent_lattice') # TODO: Spend a P on an id for the lattice
-        thind.pop('thick_faces') # TODO: Replace when mf indexing is complete
+        thind['thick_faces'] = [tf.index for tf in thind['thick_faces']]
+        thind['thin_faces'] = [tf.json_dict() for tf in thind['thin_faces']]
         thind['axial'] = list(thind['axial'])
         thind['rests'] = list(thind['rests'])
-        thind['thin_faces'] = [tf.json_dict() for tf in thind['thin_faces']]
         thind['binding_sites'] = [bs.json_dict() for bs in \
                                   thind['binding_sites']]
         return thind
