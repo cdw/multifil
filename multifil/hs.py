@@ -11,6 +11,7 @@ import os
 import multiprocessing as mp
 import unittest
 import time
+import json
 import numpy as np
 import scipy.optimize as opt
 import af
@@ -152,22 +153,22 @@ class hs(object):
         # |         a4         |      m2         m2      m1  |
         # ----------------------------------------------------
         self.thick = (
-                mf.ThickFilament(self, (
+                mf.ThickFilament(self, 0, (
                     self.thin[0].thin_faces[1], self.thin[1].thin_faces[2], 
                     self.thin[2].thin_faces[2], self.thin[6].thin_faces[0],
                     self.thin[5].thin_faces[0], self.thin[4].thin_faces[1]), 
                     1),
-                mf.ThickFilament(self, (
+                mf.ThickFilament(self, 1, (
                     self.thin[2].thin_faces[1], self.thin[3].thin_faces[2], 
                     self.thin[0].thin_faces[2], self.thin[4].thin_faces[0], 
                     self.thin[7].thin_faces[0], self.thin[6].thin_faces[1]), 
                     1),
-                mf.ThickFilament(self, (
+                mf.ThickFilament(self, 2, (
                     self.thin[5].thin_faces[1], self.thin[6].thin_faces[2], 
                     self.thin[7].thin_faces[2], self.thin[3].thin_faces[0], 
                     self.thin[2].thin_faces[0], self.thin[1].thin_faces[1]), 
                     1),
-                mf.ThickFilament(self, (
+                mf.ThickFilament(self, 3, (
                     self.thin[7].thin_faces[1], self.thin[4].thin_faces[2], 
                     self.thin[5].thin_faces[2], self.thin[1].thin_faces[0], 
                     self.thin[0].thin_faces[0], self.thin[3].thin_faces[1]), 

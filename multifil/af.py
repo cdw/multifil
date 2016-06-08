@@ -235,7 +235,7 @@ class ThinFace(object):
     
     def set_thick_face(self, myosin_face):
         """Link to the relevant myosin filament."""
-        assert(self.orientation == myosin_face.orientation) 
+        assert(self.orientation == myosin_face.index) 
         self.thick_face = myosin_face
         return
     
