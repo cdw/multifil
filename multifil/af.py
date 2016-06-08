@@ -19,6 +19,7 @@ class BindingSite(object):
         Parameters:
             parent_thin_fil: the calling thin filament instance
             index: the axial index on the parent thin filament
+            address: largest to most local, indices for finding this
             orientation: select between six orientations (0-5)
         """
         # Remember passed attributes
@@ -52,6 +53,7 @@ class BindingSite(object):
         
         Current output includes:
             index: the index of the binding site on the thin filament
+            address: largest to most local, indices for finding this
             bound_to: T/F if the binding site is bound
             orientation: the y/z orientation of the binding site relative to 
                 the center of the thin filament
@@ -129,6 +131,7 @@ class ThinFace(object):
             parent_thin_fil: the thin filament on which this face sits
             orientation: which myosin face is opposite this face (0-5)
             index: location on the thin filament this face occupies (0-2)
+            address: largest to most local, indices for finding this
             binding_sites: links to the actin binding sites on this face
         """
         self.parent_thin = parent_thin_fil 
@@ -152,7 +155,7 @@ class ThinFace(object):
         tfd = self.__dict__.copy()
         tfd['parent_thin'] = self.parent_thin.index # no recursive, index
         tfd.pop('thick_face') # TODO: Replace when mf indexing is complete
-        tfd['binding_sites'] = [bs.address() for bs in tfd['binding_sites']]
+        tfd['binding_sites'] = [bs.address for bs in tfd['binding_sites']]
         return tfd
     
     def nearest(self, axial_location):
