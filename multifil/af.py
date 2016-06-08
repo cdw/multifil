@@ -24,6 +24,7 @@ class BindingSite(object):
         # Remember passed attributes
         self.parent_thin = parent_thin_fil
         self.index = index
+        self.address = ('bs', self.parent_thin.index, self.index)
         # Use the passed orientation index to choose the correct 
         # orientation vector according to schema in ThinFilament docstring
         orientation_vectors = ((0.866, -0.5), (0, -1), (-0.866, -0.5), 
@@ -61,10 +62,6 @@ class BindingSite(object):
         bsd['parent_thin'] = self.parent_thin.index # no recursive, index
         bsd['bound_to'] = bool(bsd['bound_to']) # consider indexing
         return bsd
-    
-    def address(self):
-        """Give the address of the binding site"""
-        return ('bs', self.parent_thin.index, self.index)
     
     def axialforce(self, axial_location=None):
         """Return the axial force of the bound cross-bridge, if any
@@ -135,8 +132,9 @@ class ThinFace(object):
             binding_sites: links to the actin binding sites on this face
         """
         self.parent_thin = parent_thin_fil 
-        self.orientation = orientation 
         self.index = index
+        self.address = ('thin_face', self.parent_thin.index, self.index)
+        self.orientation = orientation 
         self.binding_sites = binding_sites 
         self.thick_face = None  # ThickFace instance this face interacts with
     
@@ -156,10 +154,6 @@ class ThinFace(object):
         tfd.pop('thick_face') # TODO: Replace when mf indexing is complete
         tfd['binding_sites'] = [bs.address() for bs in tfd['binding_sites']]
         return tfd
-    
-    def address(self):
-        """Give the address of the thin face"""
-        return ('thin_face', self.parent_thin.index, self.index)
     
     def nearest(self, axial_location):
         """Where is the nearest binding site?
@@ -318,6 +312,7 @@ class ThinFilament(object):
         self.parent_lattice = parent_lattice
         # Remember who you are
         self.index = index
+        self.address = ('thin_fil', self.index)
         # TODO The creation of the monomer positions and angles should be refactored into a static function of similar.
         # Figure out axial positions
         mono_per_poly = 26 # actin monomers in an actin polymer unit
@@ -398,10 +393,6 @@ class ThinFilament(object):
         thind['binding_sites'] = [bs.json_dict() for bs in \
                                   thind['binding_sites']]
         return thind
-    
-    def address(self):
-        """Give the address of the thin filament"""
-        return ('thin_fil', self.index)
     
     def set_thick_faces(self, thick_faces):
         """Set the adjacent thick faces and associated values
