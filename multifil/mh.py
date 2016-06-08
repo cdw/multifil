@@ -27,6 +27,10 @@ class Spring(object):
         self.normalize = sqrt(2*pi*k_t/self.k_w)
         self.stand_dev = sqrt(k_t/self.k_w) # of segment values
     
+    def json_dict(self):
+        """Create a JSON compatible representation of the spring """
+        return self.__dict__.copy()
+    
     def rest(self, state):
         """Return the rest value of the spring in state state 
         
@@ -545,31 +549,57 @@ class Head(object):
 
 class Crossbridge(Head):
     """A cross-bridge, including status of links to actin sites"""
-    def __init__(self, face_index, face_parent, thin_face):
+    def __init__(self, index, face_parent, thin_face):
         """Set up the cross-bridge
     
         Parameters:
-            face_index: the cross-bridge's index on the parent face
+            index: the cross-bridge's index on the parent face
             face_parent: the associated thick filament face
             thin_face: the face instance opposite this cross-bridge
         """
         # Do that super() voodoo that instantiates the parent Head
         super(Crossbridge, self).__init__()
         # What is your name, where do you sit on the parent face? 
-        self.face_index = face_index
+        self.index = index
         # What log are you a bump upon?
         self.face_parent = face_parent
         # Remember who thou art squaring off against
         self.thin_face = thin_face
+        # How can I ever find you?
+        self.address = ('xb', self.face_parent.parent_filament.index, 
+                        self.face_parent.index, self.index)
         # Remember if thou art bound unto an actin
         self.bound_to = None # None if unbound, BindingSite object otherwise
     
     def __str__(self):
         """String representation of the cross-bridge"""
         out = '__XB_%02d__State_%s__Forces_%d_%d__'%(
-            self.face_index, self.state,
+            self.index, self.state,
             self.axialforce(), self.radialforce())
         return out
+    
+    def json_dict(self):
+        """Create a JSON compatible representation of the crown
+        
+        Example usage: json.dumps(crown.json_dict(), indent=1)
+        
+        Current output includes:
+            c: angular converter domain spring info
+            g: linear globular domain spring info
+            state: the free, loose, strong state of binding
+            thin_face: the address of the opposing thin face
+            face_parent: the address of the attached thick filament face
+            bound_to: None or the address of the bound binding site
+        """
+        xbd = self.__dict__.copy()
+        xbd.pop('_timestep')
+        if xbd['bound_to'] is not None:
+            xbd['bound_to'] = xbd['bound_to'].address
+        xbd['face_parent'] = xbd['face_parent'].address
+        xbd['thin_face'] = xbd['thin_face'].address
+        xbd['c'] = xbd['c'].json_dict()
+        xbd['g'] = xbd['g'].json_dict()
+        return xbd
     
     def transition(self):
         """Gather the needed information and try a transition
@@ -658,7 +688,7 @@ class Crossbridge(Head):
         Returns:
             axial: the axial location of the cross-bridge base
         """
-        axial = self.face_parent.get_axial_location(self.face_index) 
+        axial = self.face_parent.get_axial_location(self.index) 
         return axial
     
     def _dist_to_bound_actin(self, xb_axial_loc=None, tip_axial_loc=None):
