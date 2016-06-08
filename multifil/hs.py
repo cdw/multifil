@@ -107,6 +107,9 @@ class hs(object):
             any given pair of thin binding sites
         
         """
+        # Versioning, to be updated when backwards incompatible changes to the 
+        # data structure are made, not on release of new features
+        self.version = 1.0 
         # Parse initial LS and Z-line
         if time_dependence is not None:
             if 'lattice_spacing' in time_dependence:
@@ -454,6 +457,7 @@ class hs(object):
         Example usage: json.dumps(thick.json_dict(), indent=1)
         
         Current output includes:
+            version: version of the sarcomere model
             timestep_len: the length of the timestep in ms
             current_timestep: time to get a watch
             lattice_spacing: the thick to thin distance
