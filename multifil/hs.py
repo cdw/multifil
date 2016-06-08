@@ -11,7 +11,7 @@ import os
 import multiprocessing as mp
 import unittest
 import time
-import json
+import ujson as json
 import numpy as np
 import scipy.optimize as opt
 import af
@@ -31,10 +31,13 @@ class hs(object):
             timestep_len: how many ms per timestep (1)
             time_dependence: a dictionary to override the initial lattice
                 spacing, sarcomere length, and actin permissiveness at each 
-                timestep. Valid keys are "lattice_spacing", "z_line", and
-                "actin_permissiveness". Each key may contain a list of the
-                values, to be iterated over as timesteps proceed. The first
-                entry in these lists will override passed initial values. 
+                timestep. Each key may contain a list of the values, to be 
+                iterated over as timesteps proceed. The first entry in these 
+                lists will override passed initial values. The valid keys 
+                time_dependence can control are:
+                    * "lattice_spacing"
+                    * "z_line"
+                    * "actin_permissiveness"
         Returns:
             None
         
@@ -444,6 +447,35 @@ class hs(object):
         """Update the line determining which actin sites are unavailable"""
         farthest_actin = min([min(thin.axial) for thin in self.thin])
         self.hiding_line = -farthest_actin
+    
+    def json_dict(self):
+        """Create a JSON compatible representation of the thick filament
+        
+        Example usage: json.dumps(thick.json_dict(), indent=1)
+        
+        Current output includes:
+            timestep_len: the length of the timestep in ms
+            current_timestep: time to get a watch
+            lattice_spacing: the thick to thin distance
+            z_line: the z_line location
+            hiding_line: where binding sites become unavailable due to overlap
+            actin_permissiveness: how much we down-regulate binding, by thin
+                filament then binding site
+            time_dependence: how "lattice_spacing", "z_line", and
+                "actin_permissiveness" can change
+            last_transitions: keeps track of the last state change by thick
+                filament and by crown
+            thick: the structures for the thick filaments
+            thin: the structures for the thin filaments
+        """
+        sd = self.__dict__.copy() # sarc dict
+        sd.pop('_timestep_len')
+        sd['timestep_len'] = self.timestep_len
+        sd['actin_permissiveness'] = self.actin_permissiveness
+        sd['thick'] = [t.json_dict() for t in sd['thick']]
+        sd['thin'] = [t.json_dict() for t in sd['thin']]
+        return sd
+   
     
     def display_axial_force_end(self):
         """ Show an end view with axial forces of face pairs
