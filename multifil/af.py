@@ -46,10 +46,10 @@ class BindingSite(object):
                          + '/' + str(self.radialforce()))
         return '\n'.join(ident)
     
-    def json_dict(self):
+    def to_dict(self):
         """Create a JSON compatible representation of the binding site
         
-        Usage example:json.dumps(bs.json_dict(), indent=1) 
+        Usage example:json.dumps(bs.to_dict(), indent=1) 
         
         Current output includes:
             index: the index of the binding site on the thin filament
@@ -141,10 +141,10 @@ class ThinFace(object):
         self.binding_sites = binding_sites 
         self.thick_face = None  # ThickFace instance this face interacts with
     
-    def json_dict(self):
+    def to_dict(self):
         """Create a JSON compatible representation of the thin face
         
-        Usage example: json.dumps(thin_face.json_dict(), indent=1)
+        Usage example: json.dumps(thin_face.to_dict(), indent=1)
         
         Current output includes:
             index: index of thin face on parent thin filament
@@ -374,10 +374,10 @@ class ThinFilament(object):
         self.thick_faces = None # Set after creation of thick filaments
         self.k = 1743 
     
-    def json_dict(self):
+    def to_dict(self):
         """Create a JSON compatible representation of the thin filament
         
-        Example usage: json.dumps(thin.json_dict(), indent=1)
+        Example usage: json.dumps(thin.to_dict(), indent=1)
         
         Current output includes:
             axial: axial locations of binding sites
@@ -390,10 +390,10 @@ class ThinFilament(object):
         thind = self.__dict__.copy()
         thind.pop('parent_lattice') # TODO: Spend a P on an id for the lattice
         thind['thick_faces'] = [tf.index for tf in thind['thick_faces']]
-        thind['thin_faces'] = [tf.json_dict() for tf in thind['thin_faces']]
+        thind['thin_faces'] = [tf.to_dict() for tf in thind['thin_faces']]
         thind['axial'] = list(thind['axial'])
         thind['rests'] = list(thind['rests'])
-        thind['binding_sites'] = [bs.json_dict() for bs in \
+        thind['binding_sites'] = [bs.to_dict() for bs in \
                                   thind['binding_sites']]
         return thind
     

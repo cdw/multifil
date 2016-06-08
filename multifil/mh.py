@@ -27,7 +27,7 @@ class Spring(object):
         self.normalize = sqrt(2*pi*k_t/self.k_w)
         self.stand_dev = sqrt(k_t/self.k_w) # of segment values
     
-    def json_dict(self):
+    def to_dict(self):
         """Create a JSON compatible representation of the spring """
         return self.__dict__.copy()
     
@@ -578,10 +578,10 @@ class Crossbridge(Head):
             self.axialforce(), self.radialforce())
         return out
     
-    def json_dict(self):
+    def to_dict(self):
         """Create a JSON compatible representation of the crown
         
-        Example usage: json.dumps(crown.json_dict(), indent=1)
+        Example usage: json.dumps(crown.to_dict(), indent=1)
         
         Current output includes:
             c: angular converter domain spring info
@@ -597,8 +597,8 @@ class Crossbridge(Head):
             xbd['bound_to'] = xbd['bound_to'].address
         xbd['face_parent'] = xbd['face_parent'].address
         xbd['thin_face'] = xbd['thin_face'].address
-        xbd['c'] = xbd['c'].json_dict()
-        xbd['g'] = xbd['g'].json_dict()
+        xbd['c'] = xbd['c'].to_dict()
+        xbd['g'] = xbd['g'].to_dict()
         return xbd
     
     def transition(self):

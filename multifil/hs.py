@@ -451,10 +451,10 @@ class hs(object):
         farthest_actin = min([min(thin.axial) for thin in self.thin])
         self.hiding_line = -farthest_actin
     
-    def json_dict(self):
+    def to_dict(self):
         """Create a JSON compatible representation of the thick filament
         
-        Example usage: json.dumps(thick.json_dict(), indent=1)
+        Example usage: json.dumps(sarc.to_dict(), indent=1)
         
         Current output includes:
             version: version of the sarcomere model
@@ -476,11 +476,10 @@ class hs(object):
         sd.pop('_timestep_len')
         sd['timestep_len'] = self.timestep_len
         sd['actin_permissiveness'] = self.actin_permissiveness
-        sd['thick'] = [t.json_dict() for t in sd['thick']]
-        sd['thin'] = [t.json_dict() for t in sd['thin']]
+        sd['thick'] = [t.to_dict() for t in sd['thick']]
+        sd['thin'] = [t.to_dict() for t in sd['thin']]
         return sd
    
-    
     def display_axial_force_end(self):
         """ Show an end view with axial forces of face pairs
         

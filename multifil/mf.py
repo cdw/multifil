@@ -42,10 +42,10 @@ class Crown(object):
                 ((0, 1), (0.866, -0.5), (-0.866, -0.5)))
         self.orientations = crown_vectors[orientations]
     
-    def json_dict(self):
+    def to_dict(self):
         """Create a JSON compatible representation of the crown
         
-        Example usage: json.dumps(crown.json_dict(), indent=1)
+        Example usage: json.dumps(crown.to_dict(), indent=1)
         
         Current output includes:
         """
@@ -181,10 +181,10 @@ class ThickFace(object):
         thin = 12*' ' + len(self.thin_face.binding_sites) * '-' + '|'
         return (thick + '\n' + thickbnd + '\n' + thinbnd + '\n' + thin + '\n')
     
-    def json_dict(self):
+    def to_dict(self):
         """Create a JSON compatible representation of the thick face
         
-        Example usage: json.dumps(thickface.json_dict(), indent=1)
+        Example usage: json.dumps(thickface.to_dict(), indent=1)
         
         Current output includes:
             parent_filament: the parent thick filament
@@ -198,7 +198,7 @@ class ThickFace(object):
         thickfaced = self.__dict__.copy()
         thickfaced['parent_filament'] = thickfaced['parent_filament'].address
         thickfaced['thin_face'] = thickfaced['thin_face'].address
-        thickfaced['xb'] = [xb.json_dict() for xb in thickfaced['xb']]
+        thickfaced['xb'] = [xb.to_dict() for xb in thickfaced['xb']]
         thickfaced['xb_by_crown'] = [xb.address if xb is not None else None\
                                      for xb in thickfaced['xb_by_crown']]
         return thickfaced
@@ -402,10 +402,10 @@ class ThickFilament(object):
                     for face in self.thick_faces])
         return faces
     
-    def json_dict(self):
+    def to_dict(self):
         """Create a JSON compatible representation of the thick filament
         
-        Example usage: json.dumps(thick.json_dict(), indent=1)
+        Example usage: json.dumps(thick.to_dict(), indent=1)
         
         Current output includes:
             axial: axial locations of the nodes along the thick fil
@@ -420,10 +420,10 @@ class ThickFilament(object):
         """
         thickd = self.__dict__.copy()
         thickd['axial'] = list(thickd['axial'])
-        thickd['crowns'] = [crown.json_dict() for crown in thickd['crowns']]
+        thickd['crowns'] = [crown.to_dict() for crown in thickd['crowns']]
         thickd.pop('parent_lattice')
         thickd['rests'] = list(thickd['rests'])
-        thickd['thick_faces'] = [face.json_dict() for face in\
+        thickd['thick_faces'] = [face.to_dict() for face in\
                                  thickd['thick_faces']]
         thickd['thin_faces'] = [face.address for face in thickd['thin_faces']]
         return thickd
