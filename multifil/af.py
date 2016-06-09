@@ -389,13 +389,24 @@ class ThinFilament(object):
         """
         thind = self.__dict__.copy()
         thind.pop('parent_lattice') # TODO: Spend a P on an id for the lattice
-        thind['thick_faces'] = [tf.index for tf in thind['thick_faces']]
+        thind['thick_faces'] = [tf.address for tf in thind['thick_faces']]
         thind['thin_faces'] = [tf.to_dict() for tf in thind['thin_faces']]
         thind['axial'] = list(thind['axial'])
         thind['rests'] = list(thind['rests'])
         thind['binding_sites'] = [bs.to_dict() for bs in \
                                   thind['binding_sites']]
         return thind
+    
+    def resolve_address(self, address):
+        """Give back a link to the object specified in the address
+        We should only see addresses starting with 'thin_face' or 'bs'
+        """
+        if address[0] == 'thin_face':
+            return self.thin_faces[address[2]]
+        elif address[0] == 'bs':
+            return self.binding_sites[address[2]]
+        import warnings
+        warnings.warn("Unresolvable address: %s"%address)
     
     def set_thick_faces(self, thick_faces):
         """Set the adjacent thick faces and associated values

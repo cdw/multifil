@@ -132,7 +132,7 @@ class ThickFace(object):
         self.parent_filament = parent_filament 
         self.thin_face = thin_face
         self.index = index # numerical orientation (0-5)
-        self.address = ('thin_face', self.parent_filament.index, self.index)
+        self.address = ('thick_face', self.parent_filament.index, self.index)
         self.axial_locations = axial_locations
         # Instantiate the cross-bridges along the face
         self.xb = []
@@ -202,6 +202,15 @@ class ThickFace(object):
         thickfaced['xb_by_crown'] = [xb.address if xb is not None else None\
                                      for xb in thickfaced['xb_by_crown']]
         return thickfaced
+    
+    def resolve_address(self, address):
+        """Give back a link to the object specified in the address
+        We should only see addresses starting with 'xb'
+        """
+        if address[0] == 'xb':
+            return self.xb_by_crown[address[3]]
+        import warnings
+        warnings.warn("Unresolvable address: %s"%address)
     
     def axialforce(self):
         """Return the total axial force of the face's cross-bridges"""
@@ -427,6 +436,20 @@ class ThickFilament(object):
                                  thickd['thick_faces']]
         thickd['thin_faces'] = [face.address for face in thickd['thin_faces']]
         return thickd
+    
+    def resolve_address(self, address):
+        """Give back a link to the object specified in the address
+        We should only see addresses starting with 'thick_face', 'crown',
+        or 'xb'
+        """
+        if address[0] == 'crown':
+            return self.crowns[address[2]]
+        elif address[0] == 'thick_face':
+            return self.thick_faces[address[2]]
+        elif address[0] == 'xb':
+            return self.thick_faces[address[2]].resolve_address(address)
+        import warnings
+        warnings.warn("Unresolvable address: %s"%address)
     
     def effective_axial_force(self):
         """Get the axial force generated at the M-line

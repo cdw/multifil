@@ -479,6 +479,32 @@ class hs(object):
         sd['thick'] = [t.to_dict() for t in sd['thick']]
         sd['thin'] = [t.to_dict() for t in sd['thin']]
         return sd
+
+    def resolve_address(self, address):
+        """Give back a link to the object specified in the address
+        Addresses are formatted as the object type (string) followed by a list
+        of the indices that the object occupies in each level of organization.
+        Valid string values are:
+            thin_fil
+            thin_face
+            bs
+            thick_fil
+            crown
+            thick_face
+            xb
+        and an example valid address would be ('bs', 1, 14) for the binding 
+        site at index 14 on the thin filament at index 1.
+        """
+        if address[0] == 'thin_fil':
+            return self.thin[address[1]]
+        elif address[0] in ['thin_face', 'bs']:
+            return self.thin[address[1]].resolve_address(address)
+        elif address[0] == 'thick_fil':
+            return self.thick[address[1]]
+        elif address[0] in ['crown', 'thick_face', 'xb']:
+            return self.thick[address[1]].resolve_address(address)
+        import warnings
+        warnings.warn("Unresolvable address: %s"%address)
    
     def display_axial_force_end(self):
         """ Show an end view with axial forces of face pairs
