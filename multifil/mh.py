@@ -560,12 +560,12 @@ class Head(object):
 
 class Crossbridge(Head):
     """A cross-bridge, including status of links to actin sites"""
-    def __init__(self, index, face_parent, thin_face):
+    def __init__(self, index, parent_face, thin_face):
         """Set up the cross-bridge
     
         Parameters:
             index: the cross-bridge's index on the parent face
-            face_parent: the associated thick filament face
+            parent_face: the associated thick filament face
             thin_face: the face instance opposite this cross-bridge
         """
         # Do that super() voodoo that instantiates the parent Head
@@ -573,12 +573,12 @@ class Crossbridge(Head):
         # What is your name, where do you sit on the parent face? 
         self.index = index
         # What log are you a bump upon?
-        self.face_parent = face_parent
+        self.parent_face = parent_face
         # Remember who thou art squaring off against
         self.thin_face = thin_face
         # How can I ever find you?
-        self.address = ('xb', self.face_parent.parent_filament.index, 
-                        self.face_parent.index, self.index)
+        self.address = ('xb', self.parent_face.parent_filament.index, 
+                        self.parent_face.index, self.index)
         # Remember if thou art bound unto an actin
         self.bound_to = None # None if unbound, BindingSite object otherwise
     
@@ -599,14 +599,14 @@ class Crossbridge(Head):
             g: linear globular domain spring info
             state: the free, loose, strong state of binding
             thin_face: the address of the opposing thin face
-            face_parent: the address of the attached thick filament face
+            parent_face: the address of the attached thick filament face
             bound_to: None or the address of the bound binding site
         """
         xbd = self.__dict__.copy()
         xbd.pop('_timestep')
         if xbd['bound_to'] is not None:
             xbd['bound_to'] = xbd['bound_to'].address
-        xbd['face_parent'] = xbd['face_parent'].address
+        xbd['parent_face'] = xbd['parent_face'].address
         xbd['thin_face'] = xbd['thin_face'].address
         xbd['c'] = xbd['c'].to_dict()
         xbd['g'] = xbd['g'].to_dict()
@@ -721,7 +721,7 @@ class Crossbridge(Head):
         Returns:
             axial: the axial location of the cross-bridge base
         """
-        axial = self.face_parent.get_axial_location(self.index) 
+        axial = self.parent_face.get_axial_location(self.index) 
         return axial
     
     def _dist_to_bound_actin(self, xb_axial_loc=None, tip_axial_loc=None):
@@ -750,7 +750,7 @@ class Crossbridge(Head):
     
     def _get_lattice_spacing(self):
         """Ask our superiors for lattice spacing data"""
-        return self.face_parent.get_lattice_spacing()
+        return self.parent_face.get_lattice_spacing()
 
 
 if __name__ == '__main__':
