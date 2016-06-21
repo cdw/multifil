@@ -62,7 +62,8 @@ class BindingSite(object):
         """
         bsd = self.__dict__.copy()
         bsd['parent_thin'] = self.parent_thin.index # no recursive, index
-        bsd['bound_to'] = bool(bsd['bound_to']) # consider indexing
+        if bsd['bound_to'] is not None:
+            bsd['bound_to'] = bsd['bound_to'].address
         return bsd
     
     def from_dict(self, bsd):
