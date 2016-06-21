@@ -11,6 +11,7 @@ import os
 import multiprocessing as mp
 import unittest
 import time
+import ujson as json
 import numpy as np
 import scipy.optimize as opt
 import af
@@ -30,10 +31,13 @@ class hs(object):
             timestep_len: how many ms per timestep (1)
             time_dependence: a dictionary to override the initial lattice
                 spacing, sarcomere length, and actin permissiveness at each 
-                timestep. Valid keys are "lattice_spacing", "z_line", and
-                "actin_permissiveness". Each key may contain a list of the
-                values, to be iterated over as timesteps proceed. The first
-                entry in these lists will override passed initial values. 
+                timestep. Each key may contain a list of the values, to be 
+                iterated over as timesteps proceed. The first entry in these 
+                lists will override passed initial values. The valid keys 
+                time_dependence can control are:
+                    * "lattice_spacing"
+                    * "z_line"
+                    * "actin_permissiveness"
         Returns:
             None
         
@@ -103,6 +107,9 @@ class hs(object):
             any given pair of thin binding sites
         
         """
+        # Versioning, to be updated when backwards incompatible changes to the 
+        # data structure are made, not on release of new features
+        self.version = 1.0 
         # Parse initial LS and Z-line
         if time_dependence is not None:
             if 'lattice_spacing' in time_dependence:
@@ -122,8 +129,9 @@ class hs(object):
         # Create the thin filaments, unlinked but oriented on creation.
         thin_orientations = ([4,0,2], [3,5,1], [4,0,2], [3,5,1], 
                 [3,5,1], [4,0,2], [3,5,1], [4,0,2]) 
-        self.thin = tuple([af.ThinFilament(self, orientation) for 
-            orientation in thin_orientations])
+        thin_ids = range(len(thin_orientations))
+        new_thin = lambda id: af.ThinFilament(self, id, thin_orientations[id])
+        self.thin = tuple([new_thin(id) for id in thin_ids])
         # Determine the hiding line
         self.update_hiding_line()
         # Create the thick filaments, remembering they are arranged thus:
@@ -151,22 +159,22 @@ class hs(object):
         # |         a4         |      m2         m2      m1  |
         # ----------------------------------------------------
         self.thick = (
-                mf.ThickFilament(self, (
+                mf.ThickFilament(self, 0, (
                     self.thin[0].thin_faces[1], self.thin[1].thin_faces[2], 
                     self.thin[2].thin_faces[2], self.thin[6].thin_faces[0],
                     self.thin[5].thin_faces[0], self.thin[4].thin_faces[1]), 
                     1),
-                mf.ThickFilament(self, (
+                mf.ThickFilament(self, 1, (
                     self.thin[2].thin_faces[1], self.thin[3].thin_faces[2], 
                     self.thin[0].thin_faces[2], self.thin[4].thin_faces[0], 
                     self.thin[7].thin_faces[0], self.thin[6].thin_faces[1]), 
                     1),
-                mf.ThickFilament(self, (
+                mf.ThickFilament(self, 2, (
                     self.thin[5].thin_faces[1], self.thin[6].thin_faces[2], 
                     self.thin[7].thin_faces[2], self.thin[3].thin_faces[0], 
                     self.thin[2].thin_faces[0], self.thin[1].thin_faces[1]), 
                     1),
-                mf.ThickFilament(self, (
+                mf.ThickFilament(self, 3, (
                     self.thin[7].thin_faces[1], self.thin[4].thin_faces[2], 
                     self.thin[5].thin_faces[2], self.thin[1].thin_faces[0], 
                     self.thin[0].thin_faces[0], self.thin[3].thin_faces[1]), 
@@ -443,6 +451,86 @@ class hs(object):
         farthest_actin = min([min(thin.axial) for thin in self.thin])
         self.hiding_line = -farthest_actin
     
+    def to_dict(self):
+        """Create a JSON compatible representation of the thick filament
+        
+        Example usage: json.dumps(sarc.to_dict(), indent=1)
+        
+        Current output includes:
+            version: version of the sarcomere model
+            timestep_len: the length of the timestep in ms
+            current_timestep: time to get a watch
+            lattice_spacing: the thick to thin distance
+            z_line: the z_line location
+            hiding_line: where binding sites become unavailable due to overlap
+            actin_permissiveness: how much we down-regulate binding, by thin
+                filament then binding site
+            time_dependence: how "lattice_spacing", "z_line", and
+                "actin_permissiveness" can change
+            last_transitions: keeps track of the last state change by thick
+                filament and by crown
+            thick: the structures for the thick filaments
+            thin: the structures for the thin filaments
+        """
+        sd = self.__dict__.copy() # sarc dict
+        sd.pop('_timestep_len')
+        sd['timestep_len'] = self.timestep_len
+        sd['actin_permissiveness'] = self.actin_permissiveness
+        sd['thick'] = [t.to_dict() for t in sd['thick']]
+        sd['thin'] = [t.to_dict() for t in sd['thin']]
+        return sd
+
+    def from_dict(self, sd):
+        """ Load values from a sarcomere dict. Values read in correspond to 
+        the current output documented in to_dict.
+        """
+        # Warn of possible version mismatches
+        read, current = sd['version'], self.version    
+        if read != current:
+            import warnings
+            warnings.warn("Versioning mismatch, reading %0.1f into %0.1f."
+                          %(read, current))
+        # Local keys
+        self.timestep_len = sd['timestep_len']
+        self.current_timestep = sd['current_timestep']
+        self.lattice_spacing = sd['lattice_spacing']
+        self.z_line = sd['z_line']
+        self.hiding_line = sd['hiding_line']
+        self.actin_permissiveness = sd['actin_permissiveness']
+        self.time_dependence = sd['time_dependence']
+        self.last_transitions = sd['last_transitions']
+        # Sub-structure keys
+        for data, thick in zip(sd['thick'], self.thick):
+            thick.from_dict(data)
+        for data, thin in zip(sd['thin'], self.thin):
+            thin.from_dict(data)
+
+    def resolve_address(self, address):
+        """Give back a link to the object specified in the address
+        Addresses are formatted as the object type (string) followed by a list
+        of the indices that the object occupies in each level of organization.
+        Valid string values are:
+            thin_fil
+            thin_face
+            bs
+            thick_fil
+            crown
+            thick_face
+            xb
+        and an example valid address would be ('bs', 1, 14) for the binding 
+        site at index 14 on the thin filament at index 1.
+        """
+        if address[0] == 'thin_fil':
+            return self.thin[address[1]]
+        elif address[0] in ['thin_face', 'bs']:
+            return self.thin[address[1]].resolve_address(address)
+        elif address[0] == 'thick_fil':
+            return self.thick[address[1]]
+        elif address[0] in ['crown', 'thick_face', 'xb']:
+            return self.thick[address[1]].resolve_address(address)
+        import warnings
+        warnings.warn("Unresolvable address: %s"%address)
+   
     def display_axial_force_end(self):
         """ Show an end view with axial forces of face pairs
         

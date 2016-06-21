@@ -27,6 +27,21 @@ class Spring(object):
         self.normalize = sqrt(2*pi*k_t/self.k_w)
         self.stand_dev = sqrt(k_t/self.k_w) # of segment values
     
+    def to_dict(self):
+        """Create a JSON compatible representation of the spring """
+        return self.__dict__.copy()
+    
+    def from_dict(self, sd):
+        """ Load values from a spring dict. Values read in correspond 
+        to the current output documented in to_dict.
+        """
+        self.r_w = sd['r_w']
+        self.r_s = sd['r_s']
+        self.k_w = sd['k_w']
+        self.k_s = sd['k_s']
+        self.normalize = sd['normalize']
+        self.stand_dev = sd['stand_dev']
+    
     def rest(self, state):
         """Return the rest value of the spring in state state 
         
@@ -545,31 +560,79 @@ class Head(object):
 
 class Crossbridge(Head):
     """A cross-bridge, including status of links to actin sites"""
-    def __init__(self, face_index, face_parent, thin_face):
+    def __init__(self, index, parent_face, thin_face):
         """Set up the cross-bridge
     
         Parameters:
-            face_index: the cross-bridge's index on the parent face
-            face_parent: the associated thick filament face
+            index: the cross-bridge's index on the parent face
+            parent_face: the associated thick filament face
             thin_face: the face instance opposite this cross-bridge
         """
         # Do that super() voodoo that instantiates the parent Head
         super(Crossbridge, self).__init__()
         # What is your name, where do you sit on the parent face? 
-        self.face_index = face_index
+        self.index = index
         # What log are you a bump upon?
-        self.face_parent = face_parent
+        self.parent_face = parent_face
         # Remember who thou art squaring off against
         self.thin_face = thin_face
+        # How can I ever find you?
+        self.address = ('xb', self.parent_face.parent_filament.index, 
+                        self.parent_face.index, self.index)
         # Remember if thou art bound unto an actin
         self.bound_to = None # None if unbound, BindingSite object otherwise
     
     def __str__(self):
         """String representation of the cross-bridge"""
         out = '__XB_%02d__State_%s__Forces_%d_%d__'%(
-            self.face_index, self.state,
+            self.index, self.state,
             self.axialforce(), self.radialforce())
         return out
+    
+    def to_dict(self):
+        """Create a JSON compatible representation of the crown
+        
+        Example usage: json.dumps(crown.to_dict(), indent=1)
+        
+        Current output includes:
+            c: angular converter domain spring info
+            g: linear globular domain spring info
+            state: the free, loose, strong state of binding
+            thin_face: the address of the opposing thin face
+            parent_face: the address of the attached thick filament face
+            bound_to: None or the address of the bound binding site
+        """
+        xbd = self.__dict__.copy()
+        xbd.pop('_timestep')
+        if xbd['bound_to'] is not None:
+            xbd['bound_to'] = xbd['bound_to'].address
+        xbd['parent_face'] = xbd['parent_face'].address
+        xbd['thin_face'] = xbd['thin_face'].address
+        xbd['c'] = xbd['c'].to_dict()
+        xbd['g'] = xbd['g'].to_dict()
+        return xbd
+       
+    def from_dict(self, xbd):
+        """ Load values from a crossbridge dict. Values read in correspond 
+        to the current output documented in to_dict.
+        """
+        # Check for index mismatch
+        read, current = tuple(xbd['address']), self.address
+        assert read==current, "index mismatch at %s/%s"%(read, current)
+        # Local keys 
+        self.state = xbd['state']
+        self.etaDG = xbd['etaDG']
+        self.alphaDG = xbd['alphaDG']
+        # Sub-structure and remote keys
+        self.c.from_dict(xbd['c'])
+        self.g.from_dict(xbd['g'])
+        self.thin_face = self.parent_face.parent_filament.parent_lattice.\
+                resolve_address(xbd['thin_face'])
+        if xbd['bound_to'] is None:
+            self.bound_to = None
+        else:
+            self.bound_to = self.parent_face.parent_filament.parent_lattice.\
+                resolve_address(xbd['bound_to'])
     
     def transition(self):
         """Gather the needed information and try a transition
@@ -658,7 +721,7 @@ class Crossbridge(Head):
         Returns:
             axial: the axial location of the cross-bridge base
         """
-        axial = self.face_parent.get_axial_location(self.face_index) 
+        axial = self.parent_face.get_axial_location(self.index) 
         return axial
     
     def _dist_to_bound_actin(self, xb_axial_loc=None, tip_axial_loc=None):
@@ -687,7 +750,7 @@ class Crossbridge(Head):
     
     def _get_lattice_spacing(self):
         """Ask our superiors for lattice spacing data"""
-        return self.face_parent.get_lattice_spacing()
+        return self.parent_face.get_lattice_spacing()
 
 
 if __name__ == '__main__':

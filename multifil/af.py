@@ -13,17 +13,19 @@ import numpy as np
 
 class BindingSite(object):
     """A singular globular actin site"""
-    def __init__(self, parent_thin_fil, thin_index, orientation):
+    def __init__(self, parent_thin_fil, index, orientation):
         """Create a binding site on the thin filament
         
         Parameters:
             parent_thin_fil: the calling thin filament instance
-            thin_index: the axial index on the parent thin filament
+            index: the axial index on the parent thin filament
+            address: largest to most local, indices for finding this
             orientation: select between six orientations (0-5)
         """
         # Remember passed attributes
         self.parent_thin = parent_thin_fil
-        self.thin_index = thin_index
+        self.index = index
+        self.address = ('bs', self.parent_thin.index, self.index)
         # Use the passed orientation index to choose the correct 
         # orientation vector according to schema in ThinFilament docstring
         orientation_vectors = ((0.866, -0.5), (0, -1), (-0.866, -0.5), 
@@ -33,17 +35,52 @@ class BindingSite(object):
         self.permissiveness = 1.0
         # Create attributes to store things not yet present 
         self.bound_to = None # None if unbound, Crossbridge object otherwise
-        self.thick_face = None 
     
     def __str__(self):
         """Return the current situation of the binding site"""
-        ident = ['Binding Site #' + str(self.thin_index) + ' Info']
+        ident = ['Binding Site #' + str(self.index) + ' Info']
         ident.append(14 * '=')
         ident.append('State: ' + str(self.get_state()))
         if self.get_state() != 0:
             ident.append('Forces: ' + str(self.axialforce()) 
                          + '/' + str(self.radialforce()))
         return '\n'.join(ident)
+    
+    def to_dict(self):
+        """Create a JSON compatible representation of the binding site
+        
+        Usage example:json.dumps(bs.to_dict(), indent=1) 
+        
+        Current output includes:
+            index: the index of the binding site on the thin filament
+            address: largest to most local, indices for finding this
+            bound_to: T/F if the binding site is bound
+            orientation: the y/z orientation of the binding site relative to 
+                the center of the thin filament
+            permissiveness: the 0-1 level of binding permissiveness 
+            parent_thin: index of the parent thin filament
+        """
+        bsd = self.__dict__.copy()
+        bsd['parent_thin'] = self.parent_thin.index # no recursive, index
+        if bsd['bound_to'] is not None:
+            bsd['bound_to'] = bsd['bound_to'].address
+        return bsd
+    
+    def from_dict(self, bsd):
+        """ Load values from a binding site dict. Values read in correspond to 
+        the current output documented in to_dict.
+        """
+        # Check for index mismatch
+        read, current = tuple(bsd['address']), self.address
+        assert read==current, "index mismatch at %s/%s"%(read, current)
+        # Local keys
+        self.orientation = bsd['orientation']
+        self.permissiveness = bsd['permissiveness']
+        if bsd['bound_to'] is not None:
+            self.bound_to = self.parent_thin.parent_lattice.\
+                    resolve_address(bsd['bound_to'])
+        else:
+            self.bound_to = bsd['bound_to']
     
     def axialforce(self, axial_location=None):
         """Return the axial force of the bound cross-bridge, if any
@@ -68,8 +105,6 @@ class BindingSite(object):
             return 0.0
         force_mag = -self.bound_to.radialforce() # Equal but opposite
         return np.multiply(force_mag, self.orientation)
-    
-    def link_thick_face(self, thick_face):
         """Create link to the relevant thick filament face when known"""
         self.thick_face = thick_face
     
@@ -92,7 +127,7 @@ class BindingSite(object):
     
     def get_axial_location(self):
         """Return the current axial location of the binding site"""
-        return self.parent_thin.axial[self.thin_index]
+        return self.parent_thin.axial[self.index]
 
 
 class ThinFace(object):
@@ -106,18 +141,53 @@ class ThinFace(object):
         ||     m1     ||      Y-->
         ================
     """
-    def __init__(self, thin_fil, orientation, binding_sites):
+    def __init__(self, parent_thin_fil, orientation, index, binding_sites):
         """Create the thin filament face
         
         Parameters:
-            thin_fil: the thin filament on which this face sits
+            parent_thin_fil: the thin filament on which this face sits
             orientation: which myosin face is opposite this face (0-5)
+            index: location on the thin filament this face occupies (0-2)
+            address: largest to most local, indices for finding this
             binding_sites: links to the actin binding sites on this face
         """
-        self.parent_filament = thin_fil 
+        self.parent_thin = parent_thin_fil 
+        self.index = index
+        self.address = ('thin_face', self.parent_thin.index, self.index)
         self.orientation = orientation 
         self.binding_sites = binding_sites 
         self.thick_face = None  # ThickFace instance this face interacts with
+    
+    def to_dict(self):
+        """Create a JSON compatible representation of the thin face
+        
+        Usage example: json.dumps(thin_face.to_dict(), indent=1)
+        
+        Current output includes:
+            index: index of thin face on parent thin filament
+            orientation: out of 0-5 directions, which this projects in
+            binding_sites: address information for each binding site
+            parent_thin: index of the parent thin filament
+        """
+        tfd = self.__dict__.copy()
+        tfd['parent_thin'] = self.parent_thin.index # no recursive, index
+        tfd['thick_face'] = tfd['thick_face'].index
+        tfd['binding_sites'] = [bs.address for bs in tfd['binding_sites']]
+        return tfd
+
+    def from_dict(self, tfd):
+        """ Load values from a thin face dict. Values read in correspond to 
+        the current output documented in to_dict.
+        """
+        # Check for index mismatch
+        read, current = tuple(tfd['address']), self.address
+        assert read==current, "index mismatch at %s/%s"%(read, current)
+        # Local keys
+        self.orientation = tfd['orientation']
+        self.thick_face = tfd['thick_face']
+        # Sub-structure keys
+        self.binding_sites = [self.parent_thin.resolve_address(bsa) \
+                              for bsa in tfd['binding_sites']]
     
     def nearest(self, axial_location):
         """Where is the nearest binding site?
@@ -136,7 +206,7 @@ class ThinFace(object):
         """
         # Next three lines of code enforce a jittery hiding, sometimes the 
         # binding site just beyond the hiding line can be accessed
-        hiding_line = self.parent_filament.hiding_line
+        hiding_line = self.parent_thin.hiding_line
         axial_location = max(hiding_line, axial_location)
         face_locs = [site.get_axial_location() for site in self.binding_sites]
         close_index = np.searchsorted(face_locs, axial_location)
@@ -196,7 +266,7 @@ class ThinFace(object):
     
     def set_thick_face(self, myosin_face):
         """Link to the relevant myosin filament."""
-        assert(self.orientation == myosin_face.orientation) 
+        assert(self.orientation == myosin_face.index) 
         self.thick_face = myosin_face
         return
     
@@ -206,7 +276,7 @@ class ThinFace(object):
     
     def get_lattice_spacing(self):
         """Return lattice spacing to the face's opposite number"""
-        return self.parent_filament.get_lattice_spacing() 
+        return self.parent_thin.get_lattice_spacing() 
 
 
 class ThinFilament(object):
@@ -238,11 +308,12 @@ class ThinFilament(object):
     are numbered from low at the left to high on the right. Thus the 90th 
     node is adjacent to the Z-line.
     """
-    def __init__(self, parent_lattice, face_orientations, start=0):
+    def __init__(self, parent_lattice, index, face_orientations, start=0):
         """Initialize the thin filament
         
         Parameters:
             parent_lattice: the calling half-sarcomere instance
+            index: which thin filament this is (0-7)
             face_orientations: list of faces' numerical orientation (0-5)
             z_line: the location of the end of the thin filament (1250 nm)
             start: which of the 26 actin monomers in an actin
@@ -273,6 +344,9 @@ class ThinFilament(object):
         """
         # Remember who created you
         self.parent_lattice = parent_lattice
+        # Remember who you are
+        self.index = index
+        self.address = ('thin_fil', self.index)
         # TODO The creation of the monomer positions and angles should be refactored into a static function of similar.
         # Figure out axial positions
         mono_per_poly = 26 # actin monomers in an actin polymer unit
@@ -295,7 +369,6 @@ class ThinFilament(object):
         face_angles = [np.arctan2(v[1], v[0]) for v in face_vectors]
         face_angles = [v + rev if (v < 0) else v for v in face_angles] 
         # Find which monomers are opposite each face
-        # TODO Convert this to use a distance rather than an angle...
         wiggle = rev/24 # count faces within 15 degrees of opposite
         mono_in_each_face = [np.nonzero(np.abs(np.subtract(monomer_angles, 
             face_angles[i]))<wiggle)[0] for i in range(len(face_angles))]
@@ -322,7 +395,7 @@ class ThinFilament(object):
                 node_index_by_face[face_index]])
             orientation = face_orientations[face_index]
             self.thin_faces.append(
-                    ThinFace(self, orientation, face_binding_sites))
+                ThinFace(self, orientation, face_index, face_binding_sites))
         del(orientation, face_binding_sites)
         # Remember the axial locations, both current and rest
         self.axial = axial_flat
@@ -331,6 +404,60 @@ class ThinFilament(object):
         self.number_of_nodes = len(self.binding_sites)
         self.thick_faces = None # Set after creation of thick filaments
         self.k = 1743 
+    
+    def to_dict(self):
+        """Create a JSON compatible representation of the thin filament
+        
+        Example usage: json.dumps(thin.to_dict(), indent=1)
+        
+        Current output includes:
+            axial: axial locations of binding sites
+            rests: rest spacings between axial locations
+            thin_faces: each of the thin faces
+            binding_sites: each of the binding sites
+            k: stiffness of the thin filament
+            number_of_nodes: number of binding sites
+        """
+        thind = self.__dict__.copy()
+        thind.pop('parent_lattice') # TODO: Spend a P on an id for the lattice
+        thind['thick_faces'] = [tf.address for tf in thind['thick_faces']]
+        thind['thin_faces'] = [tf.to_dict() for tf in thind['thin_faces']]
+        thind['axial'] = list(thind['axial'])
+        thind['rests'] = list(thind['rests'])
+        thind['binding_sites'] = [bs.to_dict() for bs in \
+                                  thind['binding_sites']]
+        return thind
+    
+    def from_dict(self, td):
+        """ Load values from a thin filament dict. Values read in correspond 
+        to the current output documented in to_dict.
+        """
+        # Check for index mismatch
+        read, current = tuple(td['address']), self.address
+        assert read==current, "index mismatch at %s/%s"%(read, current)
+        # Local keys
+        self.axial = np.array(td['axial'])
+        self.rests = np.array(td['rests'])
+        self.k = td['k']
+        self.number_of_nodes = td['number_of_nodes']
+        # Sub-structure and remote keys
+        self.thick_faces = tuple([self.parent_lattice.resolve_address(tfa) 
+                                  for tfa in td['thick_faces']])
+        for data, bs in zip(td['binding_sites'], self.binding_sites):
+            bs.from_dict(data)
+        for data, face in zip(td['thin_faces'], self.thin_faces):
+            face.from_dict(data)
+    
+    def resolve_address(self, address):
+        """Give back a link to the object specified in the address
+        We should only see addresses starting with 'thin_face' or 'bs'
+        """
+        if address[0] == 'thin_face':
+            return self.thin_faces[address[2]]
+        elif address[0] == 'bs':
+            return self.binding_sites[address[2]]
+        import warnings
+        warnings.warn("Unresolvable address: %s"%address)
     
     def set_thick_faces(self, thick_faces):
         """Set the adjacent thick faces and associated values
