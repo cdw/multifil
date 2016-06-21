@@ -65,6 +65,22 @@ class BindingSite(object):
         bsd['bound_to'] = bool(bsd['bound_to']) # consider indexing
         return bsd
     
+    def from_dict(self, bsd):
+        """ Load values from a binding site dict. Values read in correspond to 
+        the current output documented in to_dict.
+        """
+        # Check for index mismatch
+        read, current = tuple(bsd['address']), self.address
+        assert read==current, "index mismatch at %s/%s"%(read, current)
+        # Local keys
+        self.orientation = bsd['orientation']
+        self.permissiveness = bsd['permissiveness']
+        if bsd['bound_to'] is not None:
+            self.bound_to = self.parent_thin.parent_lattice.\
+                    resolve_address(bsd['bound_to'])
+        else:
+            self.bound_to = bsd['bound_to']
+    
     def axialforce(self, axial_location=None):
         """Return the axial force of the bound cross-bridge, if any
         
@@ -157,6 +173,20 @@ class ThinFace(object):
         tfd['thick_face'] = tfd['thick_face'].index
         tfd['binding_sites'] = [bs.address for bs in tfd['binding_sites']]
         return tfd
+
+    def from_dict(self, tfd):
+        """ Load values from a thin face dict. Values read in correspond to 
+        the current output documented in to_dict.
+        """
+        # Check for index mismatch
+        read, current = tuple(tfd['address']), self.address
+        assert read==current, "index mismatch at %s/%s"%(read, current)
+        # Local keys
+        self.orientation = tfd['orientation']
+        self.thick_face = tfd['thick_face']
+        # Sub-structure keys
+        self.binding_sites = [self.parent_thin.resolve_address(bsa) \
+                              for bsa in tfd['binding_sites']]
     
     def nearest(self, axial_location):
         """Where is the nearest binding site?
@@ -396,6 +426,26 @@ class ThinFilament(object):
         thind['binding_sites'] = [bs.to_dict() for bs in \
                                   thind['binding_sites']]
         return thind
+    
+    def from_dict(self, td):
+        """ Load values from a thin filament dict. Values read in correspond 
+        to the current output documented in to_dict.
+        """
+        # Check for index mismatch
+        read, current = tuple(td['address']), self.address
+        assert read==current, "index mismatch at %s/%s"%(read, current)
+        # Local keys
+        self.axial = np.array(td['axial'])
+        self.rests = np.array(td['rests'])
+        self.k = td['k']
+        self.number_of_nodes = td['number_of_nodes']
+        # Sub-structure and remote keys
+        self.thick_faces = tuple([self.parent_lattice.resolve_address(tfa) 
+                                  for tfa in td['thick_faces']])
+        for data, bs in zip(td['binding_sites'], self.binding_sites):
+            bs.from_dict(data)
+        for data, face in zip(td['thin_faces'], self.thin_faces):
+            face.from_dict(data)
     
     def resolve_address(self, address):
         """Give back a link to the object specified in the address

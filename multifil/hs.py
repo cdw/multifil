@@ -480,6 +480,31 @@ class hs(object):
         sd['thin'] = [t.to_dict() for t in sd['thin']]
         return sd
 
+    def from_dict(self, sd):
+        """ Load values from a sarcomere dict. Values read in correspond to 
+        the current output documented in to_dict.
+        """
+        # Warn of possible version mismatches
+        read, current = sd['version'], self.version    
+        if read != current:
+            import warnings
+            warnings.warn("Versioning mismatch, reading %0.1f into %0.1f."
+                          %(read, current))
+        # Local keys
+        self.timestep_len = sd['timestep_len']
+        self.current_timestep = sd['current_timestep']
+        self.lattice_spacing = sd['lattice_spacing']
+        self.z_line = sd['z_line']
+        self.hiding_line = sd['hiding_line']
+        self.actin_permissiveness = sd['actin_permissiveness']
+        self.time_dependence = sd['time_dependence']
+        self.last_transitions = sd['last_transitions']
+        # Sub-structure keys
+        for data, thick in zip(sd['thick'], self.thick):
+            thick.from_dict(data)
+        for data, thin in zip(sd['thin'], self.thin):
+            thin.from_dict(data)
+
     def resolve_address(self, address):
         """Give back a link to the object specified in the address
         Addresses are formatted as the object type (string) followed by a list

@@ -31,6 +31,17 @@ class Spring(object):
         """Create a JSON compatible representation of the spring """
         return self.__dict__.copy()
     
+    def from_dict(self, sd):
+        """ Load values from a spring dict. Values read in correspond 
+        to the current output documented in to_dict.
+        """
+        self.r_w = sd['r_w']
+        self.r_s = sd['r_s']
+        self.k_w = sd['k_w']
+        self.k_s = sd['k_s']
+        self.normalize = sd['normalize']
+        self.stand_dev = sd['stand_dev']
+    
     def rest(self, state):
         """Return the rest value of the spring in state state 
         
@@ -600,6 +611,28 @@ class Crossbridge(Head):
         xbd['c'] = xbd['c'].to_dict()
         xbd['g'] = xbd['g'].to_dict()
         return xbd
+       
+    def from_dict(self, xbd):
+        """ Load values from a crossbridge dict. Values read in correspond 
+        to the current output documented in to_dict.
+        """
+        # Check for index mismatch
+        read, current = tuple(xbd['address']), self.address
+        assert read==current, "index mismatch at %s/%s"%(read, current)
+        # Local keys 
+        self.state = xbd['state']
+        self.etaDG = xbd['etaDG']
+        self.alphaDG = xbd['alphaDG']
+        # Sub-structure and remote keys
+        self.c.from_dict(xbd['c'])
+        self.g.from_dict(xbd['g'])
+        self.thin_face = self.parent_face.parent_filament.parent_lattice.\
+                resolve_address(xbd['thin_face'])
+        if xbd['bound_to'] is None:
+            self.bound_to = None
+        else:
+            self.bound_to = self.parent_face.parent_filament.parent_lattice.\
+                resolve_address(xbd['bound_to'])
     
     def transition(self):
         """Gather the needed information and try a transition
