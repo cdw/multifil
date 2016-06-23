@@ -52,7 +52,6 @@ class BindingSite(object):
         Usage example:json.dumps(bs.to_dict(), indent=1) 
         
         Current output includes:
-            index: the index of the binding site on the thin filament
             address: largest to most local, indices for finding this
             bound_to: T/F if the binding site is bound
             orientation: the y/z orientation of the binding site relative to 
@@ -61,6 +60,7 @@ class BindingSite(object):
             parent_thin: index of the parent thin filament
         """
         bsd = self.__dict__.copy()
+        bsd.pop('index')
         bsd['parent_thin'] = self.parent_thin.index # no recursive, index
         if bsd['bound_to'] is not None:
             bsd['bound_to'] = bsd['bound_to'].address
@@ -164,12 +164,13 @@ class ThinFace(object):
         Usage example: json.dumps(thin_face.to_dict(), indent=1)
         
         Current output includes:
-            index: index of thin face on parent thin filament
+            address: largest to most local, indices for finding this
             orientation: out of 0-5 directions, which this projects in
             binding_sites: address information for each binding site
             parent_thin: index of the parent thin filament
         """
         tfd = self.__dict__.copy()
+        tfd.pop('index')
         tfd['parent_thin'] = self.parent_thin.index # no recursive, index
         tfd['thick_face'] = tfd['thick_face'].index
         tfd['binding_sites'] = [bs.address for bs in tfd['binding_sites']]
@@ -411,6 +412,7 @@ class ThinFilament(object):
         Example usage: json.dumps(thin.to_dict(), indent=1)
         
         Current output includes:
+            address: largest to most local, indices for finding this
             axial: axial locations of binding sites
             rests: rest spacings between axial locations
             thin_faces: each of the thin faces
@@ -419,6 +421,7 @@ class ThinFilament(object):
             number_of_nodes: number of binding sites
         """
         thind = self.__dict__.copy()
+        thind.pop('index')
         thind.pop('parent_lattice') # TODO: Spend a P on an id for the lattice
         thind['thick_faces'] = [tf.address for tf in thind['thick_faces']]
         thind['thin_faces'] = [tf.to_dict() for tf in thind['thin_faces']]

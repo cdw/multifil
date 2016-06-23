@@ -48,8 +48,13 @@ class Crown(object):
         Example usage: json.dumps(crown.to_dict(), indent=1)
         
         Current output includes:
+            address: largest to most local, indices for finding this
+            crossbridges: addresses of attached xbs
+            orientations: vectors used to pass back radial forces
+            parent_thick: the address of the parent thick filament
         """
         crownd = self.__dict__.copy()
+        crownd.pop('index')
         crownd['parent_thick'] = crownd['parent_thick'].address
         crownd['crossbridges'] = [xb.address for xb in crownd['crossbridges']]
         return crownd
@@ -200,15 +205,16 @@ class ThickFace(object):
         Example usage: json.dumps(thickface.to_dict(), indent=1)
         
         Current output includes:
+            address: largest to most local, indices for finding this
             parent_filament: the parent thick filament
             thin_face: the opposing thin face
             xb: a list of the cross-bridges on this face
             xb_by_crown: a list of the address of cross-bridges sorted by crown
             xb_index: thick filament node index at which each cross-bridge sits
-            index: the orientation of the face (0-5)
             axial_locations: the locations of each node along the face
         """
         thickfaced = self.__dict__.copy()
+        thickfaced.pop('index')
         thickfaced['parent_filament'] = thickfaced['parent_filament'].address
         thickfaced['thin_face'] = thickfaced['thin_face'].address
         thickfaced['xb'] = [xb.to_dict() for xb in thickfaced['xb']]
@@ -448,6 +454,7 @@ class ThickFilament(object):
         Example usage: json.dumps(thick.to_dict(), indent=1)
         
         Current output includes:
+            address: largest to most local, indices for finding this
             axial: axial locations of the nodes along the thick fil
             b_z: length of this half of the central bare zone
             crowns: dicts of the crowns
@@ -459,6 +466,7 @@ class ThickFilament(object):
             thin_faces: addresses of the opposing thin faces
         """
         thickd = self.__dict__.copy()
+        thickd.pop('index')
         thickd['axial'] = list(thickd['axial'])
         thickd['crowns'] = [crown.to_dict() for crown in thickd['crowns']]
         thickd.pop('parent_lattice')

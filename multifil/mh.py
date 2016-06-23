@@ -595,6 +595,7 @@ class Crossbridge(Head):
         Example usage: json.dumps(crown.to_dict(), indent=1)
         
         Current output includes:
+            address: largest to most local, indices for finding this
             c: angular converter domain spring info
             g: linear globular domain spring info
             state: the free, loose, strong state of binding
@@ -604,6 +605,7 @@ class Crossbridge(Head):
         """
         xbd = self.__dict__.copy()
         xbd.pop('_timestep')
+        xbd.pop('index')
         if xbd['bound_to'] is not None:
             xbd['bound_to'] = xbd['bound_to'].address
         xbd['parent_face'] = xbd['parent_face'].address
