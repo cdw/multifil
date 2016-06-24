@@ -596,8 +596,6 @@ class Crossbridge(Head):
         
         Current output includes:
             address: largest to most local, indices for finding this
-            c: angular converter domain spring info
-            g: linear globular domain spring info
             state: the free, loose, strong state of binding
             thin_face: the address of the opposing thin face
             parent_face: the address of the attached thick filament face
@@ -606,12 +604,12 @@ class Crossbridge(Head):
         xbd = self.__dict__.copy()
         xbd.pop('_timestep')
         xbd.pop('index')
+        xbd.pop('c')
+        xbd.pop('g')
         if xbd['bound_to'] is not None:
             xbd['bound_to'] = xbd['bound_to'].address
         xbd['parent_face'] = xbd['parent_face'].address
         xbd['thin_face'] = xbd['thin_face'].address
-        xbd['c'] = xbd['c'].to_dict()
-        xbd['g'] = xbd['g'].to_dict()
         return xbd
        
     def from_dict(self, xbd):
@@ -626,8 +624,6 @@ class Crossbridge(Head):
         self.etaDG = xbd['etaDG']
         self.alphaDG = xbd['alphaDG']
         # Sub-structure and remote keys
-        self.c.from_dict(xbd['c'])
-        self.g.from_dict(xbd['g'])
         self.thin_face = self.parent_face.parent_filament.parent_lattice.\
                 resolve_address(xbd['thin_face'])
         if xbd['bound_to'] is None:
