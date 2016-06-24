@@ -57,11 +57,10 @@ class BindingSite(object):
             orientation: the y/z orientation of the binding site relative to 
                 the center of the thin filament
             permissiveness: the 0-1 level of binding permissiveness 
-            parent_thin: index of the parent thin filament
         """
         bsd = self.__dict__.copy()
         bsd.pop('index')
-        bsd['parent_thin'] = self.parent_thin.index # no recursive, index
+        bsd.pop('parent_thin')
         if bsd['bound_to'] is not None:
             bsd['bound_to'] = bsd['bound_to'].address
         return bsd
@@ -167,11 +166,10 @@ class ThinFace(object):
             address: largest to most local, indices for finding this
             orientation: out of 0-5 directions, which this projects in
             binding_sites: address information for each binding site
-            parent_thin: index of the parent thin filament
         """
         tfd = self.__dict__.copy()
         tfd.pop('index')
-        tfd['parent_thin'] = self.parent_thin.index # no recursive, index
+        tfd.pop('parent_thin')
         tfd['thick_face'] = tfd['thick_face'].index
         tfd['binding_sites'] = [bs.address for bs in tfd['binding_sites']]
         return tfd

@@ -51,11 +51,10 @@ class Crown(object):
             address: largest to most local, indices for finding this
             crossbridges: addresses of attached xbs
             orientations: vectors used to pass back radial forces
-            parent_thick: the address of the parent thick filament
         """
         crownd = self.__dict__.copy()
         crownd.pop('index')
-        crownd['parent_thick'] = crownd['parent_thick'].address
+        crownd.pop('parent_thick')
         crownd['crossbridges'] = [xb.address for xb in crownd['crossbridges']]
         return crownd
     
@@ -206,7 +205,6 @@ class ThickFace(object):
         
         Current output includes:
             address: largest to most local, indices for finding this
-            parent_filament: the parent thick filament
             thin_face: the opposing thin face
             xb: a list of the cross-bridges on this face
             xb_by_crown: a list of the address of cross-bridges sorted by crown
@@ -215,7 +213,7 @@ class ThickFace(object):
         """
         thickfaced = self.__dict__.copy()
         thickfaced.pop('index')
-        thickfaced['parent_filament'] = thickfaced['parent_filament'].address
+        thickfaced.pop('parent_filament')
         thickfaced['thin_face'] = thickfaced['thin_face'].address
         thickfaced['xb'] = [xb.to_dict() for xb in thickfaced['xb']]
         thickfaced['xb_by_crown'] = [xb.address if xb is not None else None\
@@ -460,16 +458,15 @@ class ThickFilament(object):
             crowns: dicts of the crowns
             k: thick filament stiffness
             number_of_crowns: number of crowns
-            parent_lattice: currently excluded
             rests: the rest distances between the axial nodes
             thick_faces: dicts of the thick faces
             thin_faces: addresses of the opposing thin faces
         """
         thickd = self.__dict__.copy()
         thickd.pop('index')
+        thickd.pop('parent_lattice')
         thickd['axial'] = list(thickd['axial'])
         thickd['crowns'] = [crown.to_dict() for crown in thickd['crowns']]
-        thickd.pop('parent_lattice')
         thickd['rests'] = list(thickd['rests'])
         thickd['thick_faces'] = [face.to_dict() for face in\
                                  thickd['thick_faces']]

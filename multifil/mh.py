@@ -598,7 +598,6 @@ class Crossbridge(Head):
             address: largest to most local, indices for finding this
             state: the free, loose, strong state of binding
             thin_face: the address of the opposing thin face
-            parent_face: the address of the attached thick filament face
             bound_to: None or the address of the bound binding site
         """
         xbd = self.__dict__.copy()
@@ -606,9 +605,9 @@ class Crossbridge(Head):
         xbd.pop('index')
         xbd.pop('c')
         xbd.pop('g')
+        xbd.pop('parent_face')
         if xbd['bound_to'] is not None:
             xbd['bound_to'] = xbd['bound_to'].address
-        xbd['parent_face'] = xbd['parent_face'].address
         xbd['thin_face'] = xbd['thin_face'].address
         return xbd
        
