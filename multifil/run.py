@@ -98,7 +98,7 @@ def emit_run(path_local, path_s3, timestep_length, timestep_number,
     ...  'z_line': None,
     ...  'z_line_func': None}
     ...
-    >>> emit_run('./eggs', 'EGGS', 5, 10, (1250, 25, 25), (16, 1250), .75, comment='Just a test', write=False)  
+    >>> emit_run('./eggs', 'EGGS', 5, 10, (1250, 25, 25), (16, 1250), .75, comment='Just a test', write=False)  #doctest: +ELLIPSIS
     {'actin_permissiveness': 0.75,
     ... 'actin_permissiveness_func': None,
     ... 'comment': 'Just a test',
@@ -136,9 +136,10 @@ def emit_run(path_local, path_s3, timestep_length, timestep_number,
         return offset + 0.5 * amp * np.sin(2*np.pi*time/period)
     string_zln = "lambda offset, amp, period, time: offset + 0.5 * amp * np.sin(2*np.pi*time/period)"
     # Parse sarcomere length
+    rund['z_line_args'] = str(z_line) # For easier parsing by pandas
     if hasattr(z_line, "__iter__"):
         rund['z_line'] = variable_z_line(*z_line)
-        rund['z_line_func'] = (string_zln, z_line)
+        rund['z_line_func'] = string_zln
     else:
         rund['z_line'] = z_line
         rund['z_line_func'] = None
@@ -148,9 +149,10 @@ def emit_run(path_local, path_s3, timestep_length, timestep_number,
         return np.sqrt(np.power(rest_ls,2) * rest_zln / rund['z_line'])
     string_ls = "lambda rest_ls, rest_zln: np.sqrt(np.power(rest_ls,2) * rest_zln / rund['z_line'])"
     # Parse lattice spacing
+    rund['lattice_spacing_args'] = str(lattice_spacing) # For pandas
     if hasattr(lattice_spacing, "__iter__"):
         rund['lattice_spacing'] = variable_lattice_spacing(*lattice_spacing)
-        rund['lattice_spacing_func'] = (string_ls, lattice_spacing)
+        rund['lattice_spacing_func'] = string_ls
     else:
         rund['lattice_spacing'] = lattice_spacing
         rund['lattice_spacing_func'] = None
@@ -170,10 +172,11 @@ def emit_run(path_local, path_s3, timestep_length, timestep_number,
             np.sum([sigmoid(amp, on+period*i, duration, sharp, x) 
             for i in range(int(x[-1])//period+1)],0) """
     # Parse actin permissiveness 
+    rund['actin_permissiveness_args'] = str(actin_permissiveness) # For pandas
     if hasattr(actin_permissiveness, "__iter__"):
         rund['actin_permissiveness'] = variable_actin_permissiveness(
             *actin_permissiveness)
-        rund['actin_permissiveness_func'] = (string_ap, actin_permissiveness)
+        rund['actin_permissiveness_func'] = string_ap
     else:
         rund['actin_permissiveness'] = actin_permissiveness
         rund['actin_permissiveness_func'] = None
