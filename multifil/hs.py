@@ -116,6 +116,7 @@ class hs(object):
                 lattice_spacing = time_dependence['lattice_spacing'][0] 
             if 'z_line' in time_dependence:
                 z_line = time_dependence['z_line'][0] 
+            # actin permissiveness is set below, after thin filament creation
         if lattice_spacing is None:
             lattice_spacing = 14.0
         if z_line is None:
