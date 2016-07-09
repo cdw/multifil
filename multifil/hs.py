@@ -116,6 +116,7 @@ class hs(object):
                 lattice_spacing = time_dependence['lattice_spacing'][0] 
             if 'z_line' in time_dependence:
                 z_line = time_dependence['z_line'][0] 
+            # actin permissiveness is set below, after thin filament creation
         if lattice_spacing is None:
             lattice_spacing = 14.0
         if z_line is None:
@@ -463,8 +464,6 @@ class hs(object):
             lattice_spacing: the thick to thin distance
             z_line: the z_line location
             hiding_line: where binding sites become unavailable due to overlap
-            actin_permissiveness: how much we down-regulate binding, by thin
-                filament then binding site
             time_dependence: how "lattice_spacing", "z_line", and
                 "actin_permissiveness" can change
             last_transitions: keeps track of the last state change by thick
@@ -475,7 +474,6 @@ class hs(object):
         sd = self.__dict__.copy() # sarc dict
         sd.pop('_timestep_len')
         sd['timestep_len'] = self.timestep_len
-        sd['actin_permissiveness'] = self.actin_permissiveness
         sd['thick'] = [t.to_dict() for t in sd['thick']]
         sd['thin'] = [t.to_dict() for t in sd['thin']]
         return sd
@@ -496,7 +494,6 @@ class hs(object):
         self.lattice_spacing = sd['lattice_spacing']
         self.z_line = sd['z_line']
         self.hiding_line = sd['hiding_line']
-        self.actin_permissiveness = sd['actin_permissiveness']
         self.time_dependence = sd['time_dependence']
         self.last_transitions = sd['last_transitions']
         # Sub-structure keys

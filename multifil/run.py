@@ -1,201 +1,535 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-run.py - control a run on an aws node
+run.py - control a run 
 
-Created by Dave Williams on 2010-11-19
+run.emit_meta produces a meta file that describes what we want a run to do: the
+values of the z_line, lattice spacing, and actin permissiveness through the run
+and where it will be stored after completion.
+
+run.manage controls a run, locally on laptop or locally on an aws node, in
+either case without needing to know where it is running. It takes in a meta file
+produced by emit_run and uses it to configure a sarcomere 
+
+Created by Dave Williams on 2016-07-02
 """
 
 import sys
 import os
+import shutil
 import time
 import uuid
-import pickle
-import shelve
-import copy
-import optparse 
+import ujson as json
+import zipfile
 import multiprocessing as mp
 import boto
 import hs
-import numpy.random as random
-
-## Settings
-BUCKET_NAME = 'model_results' # For results files
-FOLDER_NAME = 'test_disregard/' # Needs trailing /
+import numpy as np
 
 
-## Help message
-help_mesg = "Around here, we like to call our functions with a little \n \
-      thing called options. Here's how we'd go about it: \n \
-      usage: %prog [options] arg1 arg2 "
-
-## Logging
+## Helper functions
 def log_it(message):
     """Print message to sys.stdout"""
     sys.stdout.write("run.py " + mp.current_process().name + 
             " ## " + message + "\n")
     sys.stdout.flush()
 
-## Run status
-def run_status(i, total_steps, sec_left, sec_passed, process_name):
-    if i%50==0 or i==0:
-        sec_left=int(sec_left)
-        sys.stdout.write("\n %s has finished %i/%i steps, %ih%im%is left to go"%(process_name, i+1, total_steps, sec_left/60/60, sec_left/60%60, sec_left%60)) 
-        sys.stdout.flush()
 
-## Push file to S3
-def push_to_s3(s3conn, file_name, 
-               bucket_name=BUCKET_NAME, 
-               folder_name=FOLDER_NAME):
-    ## Fix S3 folder name if needed
-    if folder_name[-1] != '/':
-        folder_name += '/'
-    ## Connect to bucket on S3
-    try:
-        bucket = s3conn.get_bucket(bucket_name)
-    except boto.exception.S3ResponseError:
-        log_it('Bucket connection gives error, trying to create bucket')
-        bucket = s3conn.create_bucket(bucket_name)
-    ## Upload the file
-    #os.system('s3cmd put %s s3://%s/%s/%s'%(file_name, bucket_name, 
-    #                                        folder_name,
-    #                                        file_name.split('/')[-1]))
-    key_name = folder_name+file_name.split('/')[-1]
-    key = bucket.new_key(key_name)
-    key.set_contents_from_filename(file_name)
-    key.close()
-  
-## Data creation functions, the run and the recording callback
-def run_callback(sarc, input={}): 
-    """Choose what to log, return it"""
-    atpase = lambda s: sum(sum(s.last_transitions,[]),[]).count('31')
-    appendd = lambda n,v: input[n].append(v)
-    appendd('ax',     sarc.axialforce())
-    appendd('ra',     sarc.radialforce())
-    appendd('rt',     sarc.radialtension())
-    appendd('fb',     sarc.get_frac_in_states())
-    appendd('atpase', atpase(sarc))
-    return input
 
-def run(sarc, timesteps, queue=None, folder_name=FOLDER_NAME, 
-        local_path=os.path.expanduser('~/data/')):
-    """Create data, save it locally, upload it to S3 and log to SDB"""
-    random.seed() #Must do in process to get proper dice rolls
-    ## Create data names and open files
-    result_name = local_path + time.strftime('%Y%m%d.') + str(uuid.uuid1())
-    meta_name = result_name+'.meta.pkl'
-    data_name = result_name+'.data.pkl'
-    sarc_name = result_name+'.sarc.shelf'
-    if os.path.exists(local_path) is False:
-        os.makedirs(local_path)
-    meta_file = open(meta_name, 'w')
-    data_file = open(data_name, 'w')
-    sarc_file = shelve.open(sarc_name, protocol=2)
-    ## Make the data and log it
-    results = {'ax':[], 'ra':[], 'rt':[], 'fb':[], 'atpase':[]}
-    tic = time.time()
-    for tstep in range(timesteps):
-        sarc.timestep()
-        results = run_callback(sarc, results)
-        sarc_file[str(tstep)]=copy.deepcopy(sarc)
-        # Update on how it is going
-        toc = int((time.time()-tic) / (tstep+1) * (timesteps-tstep-1))
-        run_status(tstep, timesteps, toc, time.time()-tic,
-                   mp.current_process().name)
-    ## Write to disk
-    # Close and compress the large sarcomere copy file
-    sarc_file.close()
-    try:
-        os.system('7za a -mx=3 %s %s'%(sarc_name+'.7z', sarc_name))
-        sarc_name += '.7z'
-    except:
-        print("Couldn't compress, is 7zip installed?")
-    # Saving smaller datas
-    results['sarc'] = sarc #Nice to have one copy in your hatband
-    pickle.dump(results, data_file, 2)
-    data_file.close()
-    # Save metadatas
-    meta_data = {'folder':folder_name,
-                 'name':result_name,
-                 'run_length': timesteps, 
-                 'lattice_spacing': sarc.lattice_spacing,
-                 'z_line': sarc.z_line}
-    pickle.dump(meta_data, meta_file, 0)
-    meta_file.close()
-    ## Pass the data and meta filenames to the queue
-    if queue is not None:
-        queue.put(data_name) 
-        queue.put(meta_name) 
-        queue.put(sarc_name)
-    return (meta_name, data_name, sarc_name)
-
-## Just like calling the main
-def like_main(ls=14, sl=1250, ts=10, ub=FOLDER_NAME, multiproc=1, loops=1):
-    return main(['--lattice_spacing', str(ls), 
-                 '--z_line', str(sl), 
-                 '--timesteps', str(ts), 
-                 '--folder', str(ub), 
-                 '--multiprocessing', str(multiproc), 
-                 '--loops', str(loops)])
-
-## Our main man
-def main(argv=None):
-    ## Get our args from the command line if not passed directly
-    if argv is None:
-        argv = sys.argv[1:]
-    ## Parse arguments into values
-    print(argv)
-    parser = optparse.OptionParser(help_mesg)
-    parser.add_option('-t', '--timesteps', dest="timesteps",
-                      default=10, type='int',
-                      help='number of timesteps for each run [10]')
-    parser.add_option('-l', '--loops', dest="loops",
-                      default=1, type='int',
-                      help = 'how many runs to do on each core [1]')
-    parser.add_option('-s', '--lattice_spacing', dest="ls",
-                      default=None, type='float',
-                      help='lattice spacing to a number [14.0]')
-    parser.add_option('-z', '--z_line', dest="z_line",
-                      default=None, type='int',
-                      help='z-line where the thin filaments end [1250]')
-    parser.add_option('-b', '--bucket', dest="bucket_name",
-                      default=BUCKET_NAME, type='string',
-                      help='set the bucket to which results will be uploaded')
-    parser.add_option('-f', '--folder', dest="folder_name",
-                      default=FOLDER_NAME, type='string',
-                      help='set the folder to which results will be uploaded')
-    parser.add_option('-m', '--multiprocessing', action="store_const",
-                      dest="proc_num", default=1, const=mp.cpu_count(),
-                      help='run as many copies as there are cores [False]')
-    parser.add_option('--halt', action="store_true",
-                      dest="the_end_of_the_end", default=False, 
-                      help='shutdown computer on completion [False]')
-    (options, args) = parser.parse_args(argv)
-    ## For each loop we are supposed to run
-    for loop in range(options.loops):
-        ## Initialize the half-sarcomeres with passed ls and z-lines
-        sarcs = [hs.hs(options.ls, options.z_line) for i in
-                 range(options.proc_num)]
-        ## Set up queue
-        queue = mp.Queue()
-        ## Set up processes
-        process = [mp.Process(target=run, args=(s, options.timesteps, 
-                        queue, options.folder_name)) for s in sarcs] 
-        ## Start processes, wait for them to finish
-        [p.start() for p in process]
-        [p.join() for p in process]
-        ## Upload the results
-        log_it("Uploading results of this loop")
-        s3conn = boto.connect_s3()
-        while not queue.empty():
-            push_to_s3(s3conn, queue.get(), 
-                       options.bucket_name, 
-                       options.folder_name)
-        log_it("Gonna run runs "+str(options.loops-1-loop)+" more times")
-    if options.the_end_of_the_end is True:
-        os.system("sudo shutdown now -h")
-    return 0 #Successful termination
+## Configure a run via a saved meta file
+def emit_meta(path_local, path_s3, timestep_length, timestep_number, 
+              z_line=None, lattice_spacing=None, actin_permissiveness=None,
+              comment = None, write = True):
+    """Produce a structured JSON file that will be consumed to create a run
     
+    emit_meta is intended as the counterpoint to the manage class and 
+    execute_run. Import emit_run into an interactive workspace and populate 
+    a directory with run configurations to be executed by a cluster of machines. 
+    
+    
+    Parameters
+    ----------
+    path_local: string
+        The local (absolute or relative) directory to which we save both 
+        emitted files and run output.
+    path_s3: string
+        The s3 bucket (and optional folder) to save run output to and to which
+        the emitted files should be uploaded.
+    timestep_length: float
+        Length of a timestep in ms
+    timestep_number: int
+        Number of timesteps run is simulated for
+    z_line: float or tuple, optional
+        If not given, default distance specified in hs.hs is used. If given as
+        float, the z-line distance for the run. If given as a tuple, used as 
+        arguments to the current z-line generation function within. The tuple
+        format is currently: (offset, amp, period)
+    lattice_spacing: float or tuple, optional
+        Same as for z-line. The tuple format is currently: (rest_ls, rest_zln)
+    actin_permissiveness: float or tuple, optional
+        Same as for z-line. The tuple format is currently: (amp, period, on, 
+        duration, sharp)
+    comment: string, optional
+        Space for comment on the purpose or other characteristics of the run
+    write: bool, optional
+        True (default) writes file to path_local/name.meta.json. Other values 
+        don't. In both cases the dictionary describing the run is returned.
+    
+    Returns
+    -------
+    rund: dict
+        Copy of run dictionary saved to disk as json.
+    
+    Examples
+    --------
+    >>> emit_run('./', None, .1, 100, write=False) 
+    {'actin_permissiveness': None,
+    ...  'actin_permissiveness_func': None,
+    ...  'comment': None,
+    ...  'lattice_spacing': None,
+    ...  'lattice_spacing_func': None,
+    ...  'name': ...,
+    ...  'path_local': './',
+    ...  'path_s3': None,
+    ...  'timestep_length': 0.1,
+    ...  'timestep_number': 100,
+    ...  'z_line': None,
+    ...  'z_line_func': None}
+    ...
+    >>> emit_run('./eggs', 'EGGS', 5, 10, (1250, 25, 25), (16, 1250), .75, comment='Just a test', write=False)  #doctest: +ELLIPSIS
+    {'actin_permissiveness': 0.75,
+    ... 'actin_permissiveness_func': None,
+    ... 'comment': 'Just a test',
+    ... 'lattice_spacing': array([ 16.        ,  15.92445392,  15.95318346,  16.04723114,
+    ... 16.07663156,  16.        ,  15.92445392,  15.95318346,
+    ... 16.04723114,  16.07663156]),
+    ... 'lattice_spacing_func': ("lambda rest_ls, rest_zln: np.sqrt(np.power(rest_ls,2) * rest_zln / rund['z_line'])",
+    ... (16, 1250)),
+    ... 'name': ...,
+    ... 'path_local': './eggs',
+    ... 'path_s3': 'EGGS',
+    ... 'timestep_length': 5,
+    ... 'timestep_number': 10,
+    ... 'z_line': array([ 1250.        ,  1261.88820645,  1257.34731565,  1242.65268435,
+    ... 1238.11179355,  1250.        ,  1261.88820645,  1257.34731565,
+    ... 1242.65268435,  1238.11179355]),
+    ... 'z_line_func': ('lambda offset, amp, period, time: offset + 0.5 * amp * np.sin(2*np.pi*time/period)',
+    ... (1250, 25, 25))}
+    ... 
+    """
+    rund = {}
+    ## Simple run metadata
+    name = str(uuid.uuid1())
+    rund['name'] = name
+    rund['comment'] = comment
+    rund['path_local'] = path_local
+    rund['path_s3'] = path_s3
+    rund['timestep_length'] = timestep_length
+    rund['timestep_number'] = timestep_number
+    ## Generate and store variable traces
+    time = np.arange(0, timestep_number*timestep_length, timestep_length)
+    # Define variable sarcomere length/z-line distance
+    def variable_z_line(offset, amp, period):
+        """Takes offset from zero, peak-to-peak amp, and period in ms"""
+        return offset + 0.5 * amp * np.sin(2*np.pi*time/period)
+    string_zln = "lambda offset, amp, period, time: offset + 0.5 * amp * np.sin(2*np.pi*time/period)"
+    # Parse sarcomere length
+    rund['z_line_args'] = str(z_line) # For easier parsing by pandas
+    if hasattr(z_line, "__iter__"):
+        rund['z_line'] = variable_z_line(*z_line)
+        rund['z_line_func'] = string_zln
+    else:
+        rund['z_line'] = z_line
+        rund['z_line_func'] = None
+   # Define variable lattice spacing
+    def variable_lattice_spacing(rest_ls, rest_zln):
+        """Assumes constant volume relation, takes in rest ls and zline"""
+        return np.sqrt(np.power(rest_ls,2) * rest_zln / rund['z_line'])
+    string_ls = "lambda rest_ls, rest_zln: np.sqrt(np.power(rest_ls,2) * rest_zln / rund['z_line'])"
+    # Parse lattice spacing
+    rund['lattice_spacing_args'] = str(lattice_spacing) # For pandas
+    if hasattr(lattice_spacing, "__iter__"):
+        rund['lattice_spacing'] = variable_lattice_spacing(*lattice_spacing)
+        rund['lattice_spacing_func'] = string_ls
+    else:
+        rund['lattice_spacing'] = lattice_spacing
+        rund['lattice_spacing_func'] = None
+    # Define variable actin permissiveness
+    def variable_actin_permissiveness(amp, period, on, duration, sharp):
+        """Requires amplitude, period of stim cycle, offset of turn-on from
+        start of a cycle, duration of on time, and sharpness (lower is more
+        gentle) of transition"""
+        sig = lambda on, x: \
+                0.5*amp*(np.tanh(sharp*(x-on))-np.tanh(sharp*(x-on-duration)))
+        cycle_number = int(time[-1])//period+1
+        return np.sum([sig(on+period*i, time) for i in range(cycle_number)], 0)
+    string_ap = """
+        sigmoid = lambda amp, on, duration, sharp, x: 
+            0.5*amp*(np.tanh(sharp*(x-on))-np.tanh(sharp*(x-on-duration)))
+        bumps = lambda amp, on, duration, sharp, period, x: 
+            np.sum([sigmoid(amp, on+period*i, duration, sharp, x) 
+            for i in range(int(x[-1])//period+1)],0) """
+    # Parse actin permissiveness 
+    rund['actin_permissiveness_args'] = str(actin_permissiveness) # For pandas
+    if hasattr(actin_permissiveness, "__iter__"):
+        rund['actin_permissiveness'] = variable_actin_permissiveness(
+            *actin_permissiveness)
+        rund['actin_permissiveness_func'] = string_ap
+    else:
+        rund['actin_permissiveness'] = actin_permissiveness
+        rund['actin_permissiveness_func'] = None
+    ## Write out the run description
+    if write is True:
+        output_filename = os.path.join(path_local, name+'.meta.json')
+        with open(output_filename , 'w') as metafile:
+            json.dump(rund, metafile, indent=4)
+    return rund
 
-if __name__ == "__main__":
-    sys.exit(main())
+
+## Manage a local run
+class manage(object):
+    """Run, now with extra objor flavor"""
+    def __init__(self, metafile, unattended=True):
+        """Create a managed instance of the sarc, optionally running it
+
+        Parameters
+        ----------
+        metafile: string
+            The location of the metafile describing the run to be worked 
+            through. Can be local or on S3. Assumed to be on S3 if the local
+            file does not exist.
+        unattended: boolean
+            Whether to complete the run without further intervention or treat 
+            as an interactive session. 
+        """
+        self.s3 = s3()
+        self.uuid = metafile.split('/')[-1].split('.')[0]
+        self.working_dir = self._make_working_dir(self.uuid)
+        self.metafile = self._parse_metafile_location(metafile)
+        self.meta = self.unpack_meta(self.metafile)
+        self.sarc = self.unpack_meta_to_sarc(self.meta)
+        if unattended:
+            self.run_and_save()
+    
+    def __del__(self):
+        """Clean up the temporary files when exiting"""
+        shutil.rmtree(self.working_dir, ignore_errors=True)
+    
+    @staticmethod
+    def _make_working_dir(name):
+        """Create a temporary working directory and return the name"""
+        wdname = os.path.expandvars('$TMPDIR')+name
+        os.makedirs(wdname, exist_ok=True)
+        return wdname
+    
+    def _parse_metafile_location(self, metafile):
+        """Parse the passed location, downloading the metafile if necessary"""
+        if not os.path.exists(metafile):
+            return s3.pull_from_s3(metafile, self.working_dir)
+        else:
+            mfn = '/'+metafile.split('/')[-1]
+            return shutil.copyfile(metafile, self.working_dir+mfn)
+    
+    @staticmethod
+    def unpack_meta(metafilename):
+        """Unpack the local meta file to a dictionary"""
+        with open(metafilename, 'r') as metafile:
+            meta = json.load(metafile)
+        return meta
+    
+    @staticmethod
+    def unpack_meta_to_sarc(meta):
+        """Unpack the local meta file and instantiate a sarc as defined 
+        in the meta file
+        """
+        # Prep single values for instantiation of hs
+        none_if_list = lambda s: None if type(meta[s]) is list else meta[s]
+        z_line = none_if_list('z_line')
+        lattice_spacing = none_if_list('lattice_spacing')
+        actin_permissiveness = none_if_list('actin_permissiveness')
+        # Time dependent values
+        time_dep_dict = {}
+        for prop in ['lattice_spacing', 'z_line', 'actin_permissiveness']:
+            if type(meta[prop]) is list:
+                time_dep_dict[prop] = meta[prop]
+        # Instantiate sarcomere
+        sarc = hs.hs(
+            lattice_spacing = lattice_spacing,
+            z_line = z_line,
+            actin_permissiveness = actin_permissiveness,
+            timestep_len = meta['timestep_length'],
+            time_dependence = time_dep_dict,
+            )
+        return sarc
+    
+    def _copy_file_to_final_location(self, temp_full_fn, final_loc=None):
+        """Copy file from the temporary location to the final resting places
+        
+        Parameters
+        ----------
+        temp_full_fn: string
+            the full location of the temporary file to be copied
+        final_loc: string
+            an optional string for an extra local directory to copy the file to
+        """
+        temp_loc = temp_full_fn
+        file_name = '/' + temp_loc.split('/')[-1]
+        # Upload to S3
+        if self.meta['path_s3'] is not None:
+            s3_loc = self.meta['path_s3'].rstrip('/')+file_name
+            s3.push_to_s3(temp_loc, s3_loc)
+        # Store in final local path 
+        if self.meta['path_local'] is not None:
+            local_loc = os.path.abspath(os.path.expanduser(
+                self.meta['path_local'])) + file_name
+            shutil.copyfile(temp_loc, local_loc)
+        # Save to passes local location
+        if final_loc is not None:
+            local_loc = os.path.abspath(os.path.expanduser(location)) \
+                    + file_name
+            shutil.copyfile(temp_loc, local_loc)
+    
+    def run_and_save(self):
+        """Complete a run according to the loaded meta configuration and save
+        results to meta-specified s3 and local locations"""
+        # Initialize data and sarc
+        self.sarcfile = sarc_file(self.sarc, self.meta, self.working_dir)
+        self.datafile = data_file(self.sarc, self.meta, self.working_dir)
+        # Run away
+        np.random.seed()
+        tic = time.time()
+        for timestep in range(self.meta['timestep_number']):
+            self.sarc.timestep()
+            self.datafile.append()
+            self.sarcfile.append()
+            # Update on how it is going
+            toc = int((time.time()-tic) / (timestep+1) *
+                      (self.meta['timestep_number']-timestep-1))
+            run_status(timestep, self.meta['timestep_number'], toc,
+                       time.time()-tic, mp.current_process().name)
+        # Finalize and save files to final locations
+        self._copy_file_to_final_location(self.metafile)
+        self.datafile.finalize()
+        self._copy_file_to_final_location(self.datafile.working_filename)
+        self.sarcfile.finalize()
+        self._copy_file_to_final_location(self.sarcfile.zip_filename)
+
+    @staticmethod
+    def _run_status(i, total_steps, sec_left, sec_passed, process_name, every):
+        """Report the run status"""
+        if i%every==0 or i==0:
+            sec_left=int(sec_left)
+            sys.stdout.write(
+                "\n %s has finished %i/%i steps, %ih%im%is left to go"\
+                 %(process_name, i+1, total_steps, 
+                   sec_left/60/60, sec_left/60%60, sec_left%60)) 
+            sys.stdout.flush()
+
+
+## File management 
+class sarc_file(object):
+    def __init__(self, sarc, meta, working_dir):
+        """Handles recording a sarcomere dict to disk at each timestep"""
+        self.sarc = sarc 
+        self.meta = meta
+        self.working_directory = working_dir
+        sarc_name = '/'+meta['name']+'.sarc.json'
+        self.working_filename = self.working_directory + sarc_name
+        with open(self.working_filename, 'w') as file:
+            file.write('[\n')
+        self.append(True)
+    
+    def append(self, first=False):
+        """Add the current timestep sarcomere to the sarc file"""
+        with open(self.working_filename, 'a') as file:
+            if not first:
+                file.write(',\n')
+            file.write(json.dumps(self.sarc.to_dict(), sort_keys=True))
+    
+    def finalize(self):
+        """Close the current sarcomere file for proper JSON formatting"""
+        with open(self.working_filename, 'a') as sarcfile:
+            sarcfile.write('\n]')
+        self.zip_filename = self.working_filename[:-4]+'zip'
+        with zipfile.ZipFile(self.zip_filename, 'w', zipfile.ZIP_LZMA) as zip:
+            zip.write(self.working_filename)
+
+
+class data_file(object):
+    def __init__(self, sarc, meta, working_dir):
+        """Generate the dictionary for use with the below data callback"""
+        self.sarc = sarc 
+        self.meta = meta
+        self.working_directory = working_dir
+        self.data_dict = {
+            'name': self.meta['name'],
+            'timestep_length': self.sarc.timestep_len,
+            'timestep': [],
+            'z_line': [],
+            'lattice_spacing': [],
+            'axial_force': [], 
+            'radial_force_y': [],
+            'radial_force_z': [],
+            'radial_tension': [],
+            'xb_fraction_free': [],
+            'xb_fraction_loose': [],
+            'xb_fraction_tight': [],
+            'xb_trans_12': [],
+            'xb_trans_23': [],
+            'xb_trans_31': [],
+            'xb_trans_21': [],
+            'xb_trans_32': [],
+            'xb_trans_13': [],
+            'xb_trans_static': [],
+            'actin_permissiveness': [],
+            'thick_displace_mean': [],
+            'thick_displace_max': [],
+            'thick_displace_min': [],
+            'thick_displace_std': [],
+            'thin_displace_mean': [],
+            'thin_displace_max': [],
+            'thin_displace_min': [],
+            'thin_displace_std': [],
+        }
+    
+    def append(self):
+        """Digest out the non-vector values we want to record for each 
+        timestep and append them to the data_dict. This is called at each 
+        timestep to build a dict for inclusion in a pandas dataframe.
+        """
+        ## Lambda helpers
+        ad = lambda n,v: self.data_dict[n].append(v)
+        ## Calculated components
+        radial_force = self.sarc.radialforce()
+        xb_fracs = self.sarc.get_frac_in_states()
+        xb_trans = sum(sum(self.sarc.last_transitions,[]),[])
+        act_perm = np.mean(self.sarc.actin_permissiveness)
+        thick_d = np.hstack([t.displacement_per_crown() 
+                             for t in self.sarc.thick])
+        thin_d = np.hstack([t.displacement_per_node() 
+                            for t in self.sarc.thin])
+        ## Dictionary work
+        ad('timestep', self.sarc.current_timestep)
+        ad('z_line', self.sarc.z_line)
+        ad('lattice_spacing', self.sarc.lattice_spacing)
+        ad('axial_force', self.sarc.axialforce())
+        ad('radial_force_y', radial_force[0])
+        ad('radial_force_z', radial_force[1])
+        ad('radial_tension', self.sarc.radialtension())
+        ad('xb_fraction_free', xb_fracs[0])
+        ad('xb_fraction_loose', xb_fracs[1])
+        ad('xb_fraction_tight', xb_fracs[2])
+        ad('xb_trans_12', xb_trans.count('12'))
+        ad('xb_trans_23', xb_trans.count('23'))
+        ad('xb_trans_31', xb_trans.count('31'))
+        ad('xb_trans_21', xb_trans.count('21'))
+        ad('xb_trans_32', xb_trans.count('32'))
+        ad('xb_trans_13', xb_trans.count('13'))
+        ad('xb_trans_static', xb_trans.count(None))
+        ad('actin_permissiveness', act_perm)
+        ad('thick_displace_mean', np.mean(thick_d))
+        ad('thick_displace_max', np.max(thick_d))
+        ad('thick_displace_min', np.min(thick_d))
+        ad('thick_displace_std', np.std(thick_d))
+        ad('thin_displace_mean', np.mean(thin_d))
+        ad('thin_displace_max', np.max(thin_d))
+        ad('thin_displace_min', np.min(thin_d))
+        ad('thin_displace_std', np.std(thin_d))
+
+    def finalize(self):
+        """Write the data dict to the temporary file location"""
+        data_name = '/'+self.meta['name']+'.data.json'
+        self.working_filename = self.working_directory + data_name
+        # Temporary location
+        with open(self.working_filename, 'w') as datafile:
+            json.dump(self.data_dict, datafile, sort_keys=True)
+
+
+class s3(object):
+    def __init__(self):
+        """Provide an interface to to S3 that hides some error handling"""
+        self._refresh_s3_connection()
+
+    def _refresh_s3_connection(self):
+        """Reconnect to s3, the connection gets dropped sometimes"""
+        self.s3 = boto.connect_s3()
+    
+    def _get_bucket(self, bucketname):
+        """Return link to a bucket name"""
+        try:
+            bucket = self.s3.get_bucket(bucket_name)
+        except (boto.exception.BotoClientError, 
+                boto.exception.BotoClientError) as e:
+            print(e)
+            print("Trying to reconnect to s3")
+            self._refresh_s3_connection()
+            bucket = self.s3.get_bucket(bucket_name)
+        return bucket
+
+    def pull_from_s3(self, name, local='./'):
+        """Given a key on S3, download it to a local file 
+        
+        Parameters
+        ----------
+        name: string
+            bucket/keyname to download. can be prefixed by 's3://', '/', or 
+            by nothing
+        local: string
+            local directory to download key into, defaults to current directory
+        
+        Returns
+        -------
+        None
+        
+        Examples
+        --------
+        >>>pull_from_s3('s3://just_a_test_bucket/test')
+        >>>os.remove('test')
+        >>>pull_from_s3('just_a_test_bucket/test')
+        >>>os.remove('test')
+        """
+        # Parse name
+        bucket_name = [n for n in name.split('/') if len(n)>3][0] # rm s3:// & /
+        key_name = name[len(bucket_name)+name.index(bucket_name):]
+        file_name = key_name.split('/')[-1]
+        # Connect to bucket
+        bucket = self._get_bucket(bucket_name)
+        # Connect to key/file
+        key = bucket.get_key(key_name)
+        # Prep local dirs to receive key
+        local = os.path.abspath(os.path.expanduser(local))
+        os.makedirs(local, exist_ok=True)
+        # Download key
+        downloaded_name = local+'/'+filename
+        key.get_contents_to_filenam(downloaded_name)
+        return downloaded_name
+    
+    def push_to_s3(self, local, remote):
+        """Given a local file, push it to a location on s3
+        
+        Parameters
+        ----------
+        local: string
+            path to local file to be uploaded to s3
+        remote: string
+            bucket and (optional) folder to upload local file to, the resulting
+            key will be remote+/+local_filename. Can be in formats:
+                s3://bucket/optional_folder/key
+                /bucket/optional_folder/key
+                bucket/optional_folder/key
+        
+        Returns
+        -------
+        None
+        """
+        # Parse names
+        file_name = local.split('/')[-1]
+        bucket_name = [n for n in remote.split('/') if len(n)>3][0] 
+        key_name = remote[len(bucket_name)+remote.index(bucket_name):]
+        if len(key_name)==0 or key_name[-1] != '/':
+            key_name += '/'
+        # Parse bucket and folders
+        bucket = self._get_bucket(bucket_name)
+        key = bucket.new_key(key_name+file_name)
+        key.set_contents_from_filename(local)
+        return
