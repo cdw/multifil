@@ -549,18 +549,14 @@ class ThinFilament(object):
         radial_force = np.sum(radial_force_list, 0)
         return radial_force
     
-    def stress(self):
-        """A metric of how much the thin filament locations are offset.
-        
-        The quality of this metric is unproven.
-        
-        Parameters: 
-            None
-        Returns:
-            stress: the sum of the thin filament nodes' displacements
-        """
+    def displacement_per_node(self):
+        """Displacement from rest lengths of segments between nodes"""
         dists = np.diff(np.hstack([self.axial, self.z_line]))
-        return np.sum(np.abs(dists - self.rests))
+        return dists - self.rests
+
+    def displacement(self):
+        """A metric of how much the thin filament locations are offset"""
+        return np.sum(np.abs(self.displacement_per_node()))
     
     def _axial_thin_filament_forces(self, axial_locations=None):
         """The force of the filament binding sites, sans cross-bridges

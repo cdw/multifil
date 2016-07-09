@@ -580,14 +580,14 @@ class ThickFilament(object):
         # Return the combination of all crown forces
         return np.sum(crown_forces, 0)
     
-    def stress(self):
-        """A metric for how offset the nodes are from rest positions
-        
-        How good of a metric this is remains to be seen. It is just the
-        total displacement of all crowns from their axial rest positions.
-        """
+    def displacement_per_crown(self):
+        """How far each crown/node has moved from it's rest position"""
         dists = np.diff(np.hstack([0, self.axial]))
-        return np.sum(np.abs(dists - self.rests))
+        return dists - self.rests
+    
+    def displacement(self):
+        """Total offset of all nodes from their rest positions"""
+        return np.sum(np.abs(self.displacement_per_crown()))
     
     def transition(self):
         """Give each cross-bridge in the filament a chance to transition"""
