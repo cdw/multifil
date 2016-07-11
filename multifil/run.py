@@ -217,7 +217,7 @@ class manage(object):
     @staticmethod
     def _make_working_dir(name):
         """Create a temporary working directory and return the name"""
-        wdname = os.path.expandvars('$TMPDIR')+name
+        wdname = '/tmp/'+name
         os.makedirs(wdname, exist_ok=True)
         return wdname
     
