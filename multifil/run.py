@@ -304,8 +304,8 @@ class manage(object):
             # Update on how it is going
             toc = int((time.time()-tic) / (timestep+1) *
                       (self.meta['timestep_number']-timestep-1))
-            run_status(timestep, self.meta['timestep_number'], toc,
-                       time.time()-tic, mp.current_process().name)
+            self._run_status(timestep, self.meta['timestep_number'], toc,
+                             time.time()-tic, mp.current_process().name, 50)
         # Finalize and save files to final locations
         self._copy_file_to_final_location(self.metafile)
         data_final_name = self.datafile.finalize()
