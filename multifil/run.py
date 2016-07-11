@@ -275,7 +275,7 @@ class manage(object):
         file_name = '/' + temp_loc.split('/')[-1]
         # Upload to S3
         if self.meta['path_s3'] is not None:
-            s3_loc = self.meta['path_s3'].rstrip('/')+file_name
+            s3_loc = self.meta['path_s3']
             self.s3.push_to_s3(temp_loc, s3_loc)
         # Store in final local path 
         if self.meta['path_local'] is not None:
