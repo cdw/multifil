@@ -455,7 +455,7 @@ class s3(object):
         """Reconnect to s3, the connection gets dropped sometimes"""
         self.s3 = boto.connect_s3()
     
-    def _get_bucket(self, bucketname):
+    def _get_bucket(self, bucket_name):
         """Return link to a bucket name"""
         try:
             bucket = self.s3.get_bucket(bucket_name)
