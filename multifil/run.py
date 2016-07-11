@@ -35,7 +35,6 @@ def log_it(message):
     sys.stdout.flush()
 
 
-
 ## Configure a run via a saved meta file
 def emit_meta(path_local, path_s3, timestep_length, timestep_number, 
               z_line=None, lattice_spacing=None, actin_permissiveness=None,
@@ -225,7 +224,7 @@ class manage(object):
     def _parse_metafile_location(self, metafile):
         """Parse the passed location, downloading the metafile if necessary"""
         if not os.path.exists(metafile):
-            return s3.pull_from_s3(metafile, self.working_dir)
+            return self.s3.pull_from_s3(metafile, self.working_dir)
         else:
             mfn = '/'+metafile.split('/')[-1]
             return shutil.copyfile(metafile, self.working_dir+mfn)
@@ -277,7 +276,7 @@ class manage(object):
         # Upload to S3
         if self.meta['path_s3'] is not None:
             s3_loc = self.meta['path_s3'].rstrip('/')+file_name
-            s3.push_to_s3(temp_loc, s3_loc)
+            self.s3.push_to_s3(temp_loc, s3_loc)
         # Store in final local path 
         if self.meta['path_local'] is not None:
             local_loc = os.path.abspath(os.path.expanduser(
@@ -449,7 +448,7 @@ class s3(object):
     def __init__(self):
         """Provide an interface to to S3 that hides some error handling"""
         self._refresh_s3_connection()
-
+    
     def _refresh_s3_connection(self):
         """Reconnect to s3, the connection gets dropped sometimes"""
         self.s3 = boto.connect_s3()
@@ -465,7 +464,7 @@ class s3(object):
             self._refresh_s3_connection()
             bucket = self.s3.get_bucket(bucket_name)
         return bucket
-
+    
     def pull_from_s3(self, name, local='./'):
         """Given a key on S3, download it to a local file 
         
