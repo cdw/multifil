@@ -308,10 +308,10 @@ class manage(object):
                        time.time()-tic, mp.current_process().name)
         # Finalize and save files to final locations
         self._copy_file_to_final_location(self.metafile)
-        self.datafile.finalize()
-        self._copy_file_to_final_location(self.datafile.working_filename)
-        self.sarcfile.finalize()
-        self._copy_file_to_final_location(self.sarcfile.zip_filename)
+        data_final_name = self.datafile.finalize()
+        self._copy_file_to_final_location(data_final_name)
+        sarc_final_name = self.sarcfile.finalize()
+        self._copy_file_to_final_location(sarc_final_name)
 
     @staticmethod
     def _run_status(i, total_steps, sec_left, sec_passed, process_name, every):
@@ -352,6 +352,7 @@ class sarc_file(object):
         self.zip_filename = self.working_filename[:-4]+'zip'
         with zipfile.ZipFile(self.zip_filename, 'w', zipfile.ZIP_LZMA) as zip:
             zip.write(self.working_filename)
+        return self.zip_filename
 
 
 class data_file(object):
@@ -442,6 +443,7 @@ class data_file(object):
         # Temporary location
         with open(self.working_filename, 'w') as datafile:
             json.dump(self.data_dict, datafile, sort_keys=True)
+        return self.working_filename
 
 
 class s3(object):
