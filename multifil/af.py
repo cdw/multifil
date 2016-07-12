@@ -170,7 +170,7 @@ class ThinFace(object):
         tfd = self.__dict__.copy()
         tfd.pop('index')
         tfd.pop('parent_thin')
-        tfd['thick_face'] = tfd['thick_face'].index
+        tfd['thick_face'] = tfd['thick_face'].address
         tfd['binding_sites'] = [bs.address for bs in tfd['binding_sites']]
         return tfd
 
@@ -183,7 +183,8 @@ class ThinFace(object):
         assert read==current, "index mismatch at %s/%s"%(read, current)
         # Local keys
         self.orientation = tfd['orientation']
-        self.thick_face = tfd['thick_face']
+        self.thick_face = self.parent_thin.parent_lattice.resolve_address(
+            tfd['thick_face'])
         # Sub-structure keys
         self.binding_sites = [self.parent_thin.resolve_address(bsa) \
                               for bsa in tfd['binding_sites']]
