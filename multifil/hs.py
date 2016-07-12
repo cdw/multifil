@@ -495,7 +495,8 @@ class hs(object):
         self.z_line = sd['z_line']
         self.hiding_line = sd['hiding_line']
         self.time_dependence = sd['time_dependence']
-        self.last_transitions = sd['last_transitions']
+        if 'last_transitions' in sd.keys():
+            self.last_transitions = sd['last_transitions']
         # Sub-structure keys
         for data, thick in zip(sd['thick'], self.thick):
             thick.from_dict(data)
