@@ -200,11 +200,11 @@ class manage(object):
         self.meta = self.unpack_meta(self.metafile)
         self.sarc = self.unpack_meta_to_sarc(self.meta)
         if unattended:
-            self.run_and_save()
-    
-    def __del__(self):
-        """Clean up the temporary files when exiting"""
-        shutil.rmtree(self.working_dir, ignore_errors=True)
+            try:
+                self.run_and_save()
+                self.clean_up_dirs()
+            except:
+                mp.current_process().terminate()
     
     @staticmethod
     def _make_working_dir(name):
@@ -279,6 +279,10 @@ class manage(object):
             local_loc = os.path.abspath(os.path.expanduser(location)) \
                     + file_name
             shutil.copyfile(temp_loc, local_loc)
+    
+    def clean_up_dirs(self):
+        """Clean up the temporary files when exiting"""
+        shutil.rmtree(self.working_dir, ignore_errors=True)
     
     def run_and_save(self):
         """Complete a run according to the loaded meta configuration and save
