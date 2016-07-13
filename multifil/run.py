@@ -505,6 +505,9 @@ class s3(object):
         # Download key
         downloaded_name = local+'/'+file_name
         key.get_contents_to_filename(downloaded_name)
+        if key.size != os.stat(downloaded_name).st_size:
+            print("Size mismatch, downloading again for %s: "%downloaded_name)
+            key.get_contents_to_filename(downloaded_name)
         return downloaded_name
     
     def push_to_s3(self, local, remote):
@@ -535,4 +538,7 @@ class s3(object):
         bucket = self._get_bucket(bucket_name)
         key = bucket.new_key(key_name+file_name)
         key.set_contents_from_filename(local)
+        if key.size != os.stat(local).st_size:
+            print("Size mismatch, uploading again for %s: "%local)
+            key.set_contents_from_filename(local)
         return
