@@ -202,7 +202,6 @@ class manage(object):
         if unattended:
             try:
                 self.run_and_save()
-                self.clean_up_dirs()
             except:
                 mp.current_process().terminate()
     
@@ -280,10 +279,6 @@ class manage(object):
                     + file_name
             shutil.copyfile(temp_loc, local_loc)
     
-    def clean_up_dirs(self):
-        """Clean up the temporary files when exiting"""
-        shutil.rmtree(self.working_dir, ignore_errors=True)
-    
     def run_and_save(self):
         """Complete a run according to the loaded meta configuration and save
         results to meta-specified s3 and local locations"""
@@ -354,6 +349,7 @@ class sarc_file(object):
         self.zip_filename = self.working_filename[:-4]+'zip'
         with zipfile.ZipFile(self.zip_filename, 'w', zipfile.ZIP_LZMA) as zip:
             zip.write(self.working_filename)
+        os.remove(self.working_filename)
         return self.zip_filename
 
 
