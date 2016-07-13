@@ -27,14 +27,6 @@ import hs
 import numpy as np
 
 
-## Helper functions
-def log_it(message):
-    """Print message to sys.stdout"""
-    sys.stdout.write("run.py " + mp.current_process().name + 
-            " ## " + message + "\n")
-    sys.stdout.flush()
-
-
 ## Configure a run via a saved meta file
 def emit_meta(path_local, path_s3, timestep_length, timestep_number, 
               z_line=None, lattice_spacing=None, actin_permissiveness=None,
@@ -302,27 +294,32 @@ class manage(object):
             self.datafile.append()
             self.sarcfile.append()
             # Update on how it is going
-            toc = int((time.time()-tic) / (timestep+1) *
-                      (self.meta['timestep_number']-timestep-1))
-            self._run_status(timestep, self.meta['timestep_number'], toc,
-                             time.time()-tic, mp.current_process().name, 50)
+            self._run_status(timestep, tic, 100)
         # Finalize and save files to final locations
+        self._log_it("model finished, uploading")
         self._copy_file_to_final_location(self.metafile)
         data_final_name = self.datafile.finalize()
         self._copy_file_to_final_location(data_final_name)
         sarc_final_name = self.sarcfile.finalize()
         self._copy_file_to_final_location(sarc_final_name)
-
-    @staticmethod
-    def _run_status(i, total_steps, sec_left, sec_passed, process_name, every):
+        self._log_it("uploading finished, done with this run")
+    
+    def _run_status(self, timestep, start, every):
         """Report the run status"""
-        if i%every==0 or i==0:
-            sec_left=int(sec_left)
-            sys.stdout.write(
-                "\n %s has finished %i/%i steps, %ih%im%is left to go"\
-                 %(process_name, i+1, total_steps, 
-                   sec_left/60/60, sec_left/60%60, sec_left%60)) 
-            sys.stdout.flush()
+        if timestep%every==0 or timestep==0:
+            total_steps = self.meta['timestep_number']
+            sec_passed = time.time()-start
+            sec_left = int(sec_passed/(timestep+1)*(total_steps-timestep-1))
+            self._log_it("finished %i/%i steps, %ih%im%is left"%(
+                timestep+1, total_steps, 
+                sec_left/60/60, sec_left/60%60, sec_left%60))
+    
+    @staticmethod
+    def _log_it(message):
+        """Print message to sys.stdout"""
+        sys.stdout.write("run.py " + mp.current_process().name + 
+                " ## " + message + "\n")
+        sys.stdout.flush()
 
 
 ## File management 
