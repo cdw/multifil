@@ -1,0 +1,17 @@
+{
+    "z_line_args":"None",
+    "actin_permissiveness":null,
+    "name":"665f459e-4911-11e6-8cce-a4d18ce239a2",
+    "timestep_number":10,
+    "lattice_spacing_args":"None",
+    "lattice_spacing_func":null,
+    "path_s3":"s3:\/\/just_a_test_bucket\/",
+    "timestep_length":0.1,
+    "comment":null,
+    "actin_permissiveness_args":"None",
+    "path_local":".\/",
+    "z_line_func":null,
+    "z_line":null,
+    "lattice_spacing":null,
+    "actin_permissiveness_func":null
+}

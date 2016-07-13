@@ -331,21 +331,22 @@ class sarc_file(object):
         self.working_directory = working_dir
         sarc_name = '/'+meta['name']+'.sarc.json'
         self.working_filename = self.working_directory + sarc_name
-        with open(self.working_filename, 'w') as file:
-            file.write('[\n')
+        self.working_file = open(self.working_filename, 'a')
+        self.next_write = '[\n'
         self.append(True)
     
     def append(self, first=False):
         """Add the current timestep sarcomere to the sarc file"""
-        with open(self.working_filename, 'a') as file:
-            if not first:
-                file.write(',\n')
-            file.write(json.dumps(self.sarc.to_dict(), sort_keys=True))
+        if not first:
+            self.next_write +=',\n'
+        self.next_write += json.dumps(self.sarc.to_dict(), sort_keys=True)
+        self.working_file.write(self.next_write)
+        self.next_write = ''
     
     def finalize(self):
         """Close the current sarcomere file for proper JSON formatting"""
-        with open(self.working_filename, 'a') as sarcfile:
-            sarcfile.write('\n]')
+        self.working_file.write('\n]')
+        self.working_file.close()
         self.zip_filename = self.working_filename[:-4]+'zip'
         with zipfile.ZipFile(self.zip_filename, 'w', zipfile.ZIP_LZMA) as zip:
             zip.write(self.working_filename)
