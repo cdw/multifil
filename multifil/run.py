@@ -498,8 +498,8 @@ class s3(object):
         local = os.path.abspath(os.path.expanduser(local))
         os.makedirs(local, exist_ok=True)
         # Download key
-        downloaded_name = local+'/'+filename
-        key.get_contents_to_filenam(downloaded_name)
+        downloaded_name = local+'/'+file_name
+        key.get_contents_to_filename(downloaded_name)
         return downloaded_name
     
     def push_to_s3(self, local, remote):
