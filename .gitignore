@@ -56,4 +56,7 @@ docs/_build/
 # PyBuilder
 target/
 
+#Custom stuff
 .dropbox
+aws/test_instance
+
