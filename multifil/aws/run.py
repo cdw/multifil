@@ -23,7 +23,7 @@ import ujson as json
 import zipfile
 import multiprocessing as mp
 import boto
-import hs
+from .. import hs
 import numpy as np
 
 

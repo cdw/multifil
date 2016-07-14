@@ -12,7 +12,7 @@ import time
 import optparse
 import multiprocessing as mp
 import boto
-import run
+from . import run
 
 ## Helper functions
 def log_it(log_message):
