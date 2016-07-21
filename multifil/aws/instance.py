@@ -129,11 +129,22 @@ class queue_eater(object):
             halt_system()
 
 
-## Just like calling the main
-def like_main(queue=None, multiproc=1):
-    """A mapping to main that is easier to call from ipython"""
-    return main(['--queue', str(queue), 
-                 '--multiprocessing', str(multiproc)])
+## Many munching mouths
+def multi_eaters(sqs_queue_name, num=None, id=None, secret=None, shutdown=True):
+    """Launch a number of queue eaters"""
+    if num is None:
+        num = mp.cpu_count()
+    queue_eater_args = (sqs_queue_name, id, secret, shutdown)
+    eaters = [mp.Process(target=queue_eater, args = queue_eater_args) \
+              for i in range(num)]
+    [e.start() for e in eaters]
+    time.sleep(0.5)
+    while not all([not e.is_alive() for e in eaters]):
+        time.sleep(0.5)
+    [e.join() for e in eaters]
+    if shutdown is True:
+        halt_system()
+
 
 ## Our main man
 def main(argv=None):
@@ -159,18 +170,8 @@ def main(argv=None):
                       dest="the_end_of_the_end", default=False, 
                       help='shutdown computer on completion or error [False]')
     (options, args) = parser.parse_args(argv)
-    ## For each loop we are supposed to run
-    queue_eater_args = (options.queue_name, options.id, options.secret,
-                        options.the_end_of_the_end)
-    eaters = [mp.Process(target=queue_eater, args = queue_eater_args) \
-              for i in range(options.proc_num)]
-    [e.start() for e in eaters]
-    time.sleep(0.5)
-    while not all([not e.is_alive() for e in eaters]):
-        time.sleep(0.5)
-    [e.join() for e in eaters]
-    if options.the_end_of_the_end is True:
-        halt_system()
+    multi_eaters(options.queue_name, options.proc_num, options.id,
+                 options.secret, options.the_end_of_the_end)
     return 0 #Successful termination
     
 
