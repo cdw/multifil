@@ -6,7 +6,7 @@ mf.py - A myosin thick filament
 Created by Dave Williams on 2010-01-04.
 """
 
-from . import mh
+import mh
 import numpy as np
 
 

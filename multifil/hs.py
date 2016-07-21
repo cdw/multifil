@@ -14,8 +14,8 @@ import time
 import ujson as json
 import numpy as np
 import scipy.optimize as opt
-from . import af
-from . import mf
+import af
+import mf
 
 class hs(object):
     """The half-sarcomere and ways to manage it"""
