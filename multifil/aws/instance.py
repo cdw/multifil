@@ -38,8 +38,8 @@ def log_it(log_message):
     with open('/dev/console', 'w') as console:
         console.write(identified_message + '\n')
     if log_to_sqs:
-        msg = logging_queue.new_message(ip4+": "+log_message)
-        logging_queue.write(msg)
+        msg = ip4 + " - P"+mp.current_process().name+": "+log_message
+        logging_queue.write(logging_queue.new_message(msg))
                 
 def fatal_error(error_log_message, feed_me = "differently", shutdown=False):
     """Log a message likely to have torpedoed the run"""
@@ -103,7 +103,7 @@ class queue_eater(object):
     def _connect_to_queue(self):
         """Connect to our sqs queue"""
         try:
-            log_it("Connecting to SQS queue")
+            log_it("Connecting to SQS queue "+self.name)
             sqs = boto.connect_sqs(self.id, self.secret)
             self.queue = sqs.get_queue(self.name)
             if type(self.queue) is type(None):
