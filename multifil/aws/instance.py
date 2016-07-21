@@ -33,7 +33,7 @@ def fatal_error(error_log_message, feed_me = "differently", shutdown=False):
 def running_error(exception):
     """An error that occured while running a job"""
     log_it("### An error occurred while running jobs")
-    log_it("Exception of type " + type(exception) + 
+    log_it("Exception of type " + str(type(exception)) + 
            ": " + exception.message)
     exc_type, exc_value, exc_traceback = sys.exc_info()
     log_it(repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
