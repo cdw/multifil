@@ -10,18 +10,36 @@ import sys
 import os
 import time
 import optparse
+import urllib.request 
 import multiprocessing as mp
 import boto
 from . import run
 
+## Reporting to SQS
+# This is a bit hacky and I don't like it
+try:
+    with urllib.request.urlopen(
+        'http://169.254.169.254/latest/meta-data/public-ipv4',
+        timeout=3) as response:
+        ip4 = response.read().decode()
+    log_to_sqs=True
+    sqs = boto.connect_sqs()
+    logging_queue = sqs.get_queue('status-queue')
+except urllib.error.URLError:
+    log_to_sqs=False
+
+
 ## Helper functions
 def log_it(log_message):
     """Write message to console so that it can be viewed from EC2 monitor"""
-    identified_message = "instance.py " + mp.current_process().name +  \
+    identified_message = "instance.py :" + mp.current_process().name +  \
             " ## " + log_message
     print(identified_message)
     with open('/dev/console', 'w') as console:
         console.write(identified_message + '\n')
+    if log_to_sqs:
+        msg = logging_queue.new_message(ip4+": "+log_message)
+        logging_queue.write(msg)
                 
 def fatal_error(error_log_message, feed_me = "differently", shutdown=False):
     """Log a message likely to have torpedoed the run"""
