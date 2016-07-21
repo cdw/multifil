@@ -20,7 +20,7 @@ def log_it(log_message):
     identified_message = "instance.py " + mp.current_process().name +  \
             " ## " + log_message
     print(identified_message)
-    with open('/dev/console', 'a') as console:
+    with open('/dev/console', 'w') as console:
         console.write(identified_message + '\n')
                 
 def fatal_error(error_log_message, feed_me = "differently", shutdown=False):
