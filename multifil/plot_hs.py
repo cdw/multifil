@@ -36,12 +36,12 @@ class plot_hs(object):
                              (0 + 2*ls_g, 0), 
                              (0 + ls_g,   0 - 3*ls_d), 
                              (0 + 3*ls_g, 0 - 3*ls_d)]
-        act_a = lambda (y,z): (y - ls_g, z + ls_d)
-        act_b = lambda (y,z): (y, z + 2*ls_d)
-        act_c = lambda (y,z): (y + ls_g, z + ls_d)
-        act_d = lambda (y,z): (y + ls_g, z - ls_d)
-        act_e = lambda (y,z): (y, z - 2*ls_d)
-        act_f = lambda (y,z): (y - ls_g, z - ls-d) 
+        act_a = lambda y,z: (y - ls_g, z + ls_d)
+        act_b = lambda y,z: (y, z + 2*ls_d)
+        act_c = lambda y,z: (y + ls_g, z + ls_d)
+        act_d = lambda y,z: (y + ls_g, z - ls_d)
+        act_e = lambda y,z: (y, z - 2*ls_d)
+        act_f = lambda y,z: (y - ls_g, z - ls-d) 
         self.thin_yzlocs = [act_c(self.thick_yzlocs[1]),
                             act_b(self.thick_yzlocs[0]),
                             act_a(self.thick_yzlocs[1]),
