@@ -38,7 +38,8 @@ def log_it(log_message):
     with open('/dev/console', 'w') as console:
         console.write(identified_message + '\n')
     if log_to_sqs:
-        msg = ip4 + " - P"+mp.current_process().name+": "+log_message
+        oclock = time.strftime('%a,%H:%M') + " - "
+        msg = oclock + ip4 + " - "+mp.current_process().name+": "+log_message
         logging_queue.write(logging_queue.new_message(msg))
                 
 def fatal_error(error_log_message, feed_me = "differently", shutdown=False):
@@ -98,6 +99,7 @@ class queue_eater(object):
         except Exception as e:
             running_error(e)
             self.shutdown()
+        log_it("Ate all we can, queue eater out")
         return
     
     def _connect_to_queue(self):
