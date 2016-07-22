@@ -83,7 +83,7 @@ try:
     key = code_bucket.get_key(key_name)
     key.get_contents_to_filename(key_name)
     try_and_log("unzip %s"%key_name, 
-                "Unzip local code file %s with result: "%key_name)
+                "Unzipped local code file %s with result: "%key_name)
     time.sleep(3) # poor man's race condition control!
 except boto.exception.S3ResponseError:
     fatal_error("No bucket with given name %s"%(CODE_ZIP_KEY), "a valid bucket")
@@ -94,16 +94,14 @@ except IOError:
 ## Turn control over to the job queue
 try:
     log_it(str(dir()))
-    log_it("Importing multifil from dir %s"%os.getcwd())
-    sys.path.append(os.getcwd())
-    import multifil
-    log_it("Multifil imported, now turning things over to queue eaters")
-    multifil.aws.instance.multi_eaters(JOB_QUEUE, shutdown=False)
-    #multifil.aws.instance.multi_eaters(JOB_QUEUE)
+    log_it("Turning things over to queue eater processes")
+    commandment = "python3 -c \"import multifil;\
+        multifil.aws.instance.multi_eaters('%s',shutdown=True)\""%JOB_QUEUE 
+    try_and_log(commandment, "Called sub-process to manage queue eaters")
     log_it("All done")
 except Exception as e:
     log_it("### An error occurred while running jobs")
-    log_it("Exception of type " + str(type(e)) + ": " + e.message)
+    log_it("Exception of type " + str(type(e)))
     exc_type, exc_value, exc_traceback = sys.exc_info()
     log_it(repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
     log_it("Going no further, shutting down now")
