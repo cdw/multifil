@@ -17,7 +17,7 @@ import boto
 
 
 ## Defaults
-BASE_PATH = os.path.expanduser('~/code/multifil/')
+BASE_PATH = os.path.abspath(os.path.split(__file__)[0]+'/../..')+'/'
 CODE_DIR = 'multifil'
 CODE_LOCATION =  BASE_PATH + CODE_DIR
 USER_DATA = CODE_LOCATION + '/aws/userdata.py'
@@ -29,8 +29,7 @@ KEY_NAME = 'gsg-keypair'
 SECURITY_GROUP_ID = 'sg-1ddae166'
 SUBNET_IDS = ('subnet-945f5ca9', 'subnet-c9ce2b80', # each corresponds to
               'subnet-64e6d34e', 'subnet-bd94a0e5') # an availability zone
-#AMI = ('ami-2d39803a', 'c4.xlarge') # Ubuntu
-AMI = ('ami-2d39803a', 't2.medium') # Testing
+AMI = ('ami-2d39803a', 'c4.xlarge') # Ubuntu
 SPOT_BID = 0.209 # bidding the on-demand price
 
 
@@ -65,9 +64,10 @@ def load_userdata(filename='userdata.py', queue_name=JOB_QUEUE):
 def update_code_on_s3():
     """Update the code on s3 from our local copy"""
     zipname = CODE_DIR+'.zip' 
+    # Not fragile at all... ha
     cmds = (
-        "cd ../..; zip -roTFS %s %s"%(zipname, CODE_DIR), 
-        "cd ../..; aws s3 cp %s s3://%s/"%(zipname, CODE_BUCKET))
+        "cd %s; zip -roTFS -imultifil/\* -isetup* %s ./"%(BASE_PATH, zipname), 
+        "cd %s; aws s3 cp %s s3://%s/"%(BASE_PATH, zipname, CODE_BUCKET))
     print(os.getcwd())
     print(cmds)
     [print(subp.call(c, shell=True)) for c in cmds]
