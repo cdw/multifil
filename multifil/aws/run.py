@@ -25,8 +25,7 @@ import multiprocessing as mp
 import boto
 import numpy as np
 
-sys.path.append(os.path.abspath('..'))
-import hs
+from .. import hs
 
 ## Configure a run via a saved meta file
 def emit_meta(path_local, path_s3, timestep_length, timestep_number, 
