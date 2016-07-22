@@ -23,6 +23,7 @@ CODE_LOCATION =  BASE_PATH + CODE_DIR
 USER_DATA = CODE_LOCATION + '/aws/userdata.py'
 CODE_BUCKET = 'model_code'
 JOB_QUEUE = 'job_queue'
+STATUS_QUEUE = 'status-queue'
 KEY_FILE = os.path.expanduser('~/.aws/keys/id_gsg-keypair')
 KEY_NAME = 'gsg-keypair' 
 SECURITY_GROUP_ID = 'sg-1ddae166'
@@ -106,6 +107,29 @@ def launch_spot_instances(ec2, num_of, userdata, bid=SPOT_BID,
         subnet_id          = SUBNET_IDS[1])
     time.sleep(.5) # Give the machines time to register
     return reservation
+
+def watch_cluster():
+    """Give real-time updates on what is happening aboard our cluster"""
+    #Make it pretty, or pretty trippy
+    range_plus =lambda ri,re,s: [str(i)+s for i in range(ri,re)]
+    styles = ["\033["+''.join(style) for style in itertools.product(
+        range_plus(0,3,';'), range_plus(30,38,';'), range_plus(40,48,'m'))]
+    #Make it work
+    sqs = boto.connect_sqs()
+    status_queue = sqs.get_queue(STATUS_QUEUE)
+    print("Starting cluster watch, ^c to stop")
+    while True: #quit via ^C
+        try:
+            msg = status_queue.read()
+            body = msg.get_body()
+            style = styles[int(body.split('-')[1].split('.')[-1])%len(styles)]
+            print(style+body)
+            status_queue.delete_message(msg)
+        except KeyboardInterrupt:
+            print("\nMy watch has ended")
+            break
+        except AttributeError: #no message to read body from
+            pass
 
 
 class cluster(object):
