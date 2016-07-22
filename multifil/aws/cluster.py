@@ -100,10 +100,9 @@ def launch_spot_instances(ec2, num_of, userdata, bid=SPOT_BID,
         image_id           = ami,
         key_name           = KEY_NAME, 
         security_group_ids = [SECURITY_GROUP_ID],
-        user_data          = userdata,
+        user_data          = userdata.encode('ascii'),
         instance_type      = inst_type,
-        min_count          = num_of,
-        max_count          = num_of,
+        count              = num_of,
         subnet_id          = SUBNET_IDS[1])
     time.sleep(.5) # Give the machines time to register
     return reservation
@@ -177,21 +176,17 @@ class cluster(object):
             print_direct("\r%i of %i nodes are ready"%(ready, len(nodes)))
             time.sleep(1)
         print_direct("\nAll nodes ready \n")
+        if self.use_spot:
+            nodes = self.ec2.get_only_instances([n.instance_id for n in nodes])
         self.nodes = nodes
         return nodes
 
     def kill_cluster(self):
         """Terminate the cluster nodes"""
-        try:
-            [node.terminate() for node in self.nodes]
-        except:
-            [node.cancel() for node in self.nodes]
-            ids = [node.instance_id for node in self.nodes]
-            [instance.terminate() for reservation in EC2.get_all_instances(ids)
-             for instance in reservation.instances]
+        [node.terminate() for node in self.nodes]
 
     def node_ip_addresses(self):
         """Print the ip addresses for each node"""
-        [print(instance.ip_address) for instance in self.nodes]
+        [print(instance.ip_address) for instance in nodes]
     
     
