@@ -59,4 +59,5 @@ target/
 #Custom stuff
 .dropbox
 aws/test_instance
-
+multifil.zip
+notes/
