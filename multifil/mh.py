@@ -229,7 +229,10 @@ class SingleSpringHead(object):
         g_1 = self._free_energy(bs, "free")
         g_2 = self._free_energy(bs, "loose")
         ## Rate, as in pg 1209 of Tanner et al, 2007
-        rate = self._r12(bs) / m.exp(g_1 - g_2)
+        try:
+            rate = self._r12(bs) / m.exp(g_1 - g_2)
+        except: ZeroDivisionError:
+            rate = 1
         return float(rate)
     
     def _r23(self, bs):
@@ -262,7 +265,10 @@ class SingleSpringHead(object):
         ## Governed as in self_r21
         g_2 = self._free_energy(bs, "loose")
         g_3 = self._free_energy(bs, "tight")
-        rate = self._r23(bs) / m.exp(g_2 - g_3)
+        try:
+            rate = self._r23(bs) / m.exp(g_2 - g_3)
+        except: ZeroDivisionError:
+            rate = 1
         return float(rate)
     
     def _r31(self, bs):
@@ -480,7 +486,11 @@ class Head(object):
         loose_free_energy = self._free_energy(bs, "loose")
         ## Rate, as in pg 1209 of Tanner et al, 2007
         ## With added reduced-detachment factor, increases dwell time
-        rate = self._bind(bs, ap) / m.exp(unbound_free_energy - loose_free_energy)
+        try:
+            rate = self._bind(bs, ap) / m.exp(
+                unbound_free_energy - loose_free_energy)
+        except ZeroDivisionError:
+            rate = 1
         return float(rate)
     
     def _r23(self, bs):
@@ -512,7 +522,10 @@ class Head(object):
         ## Governed as in self_r21
         loose_free_energy = self._free_energy(bs, "loose")
         tight_free_energy = self._free_energy(bs, "tight")
-        rate = self._r23(bs)/ m.exp(loose_free_energy - tight_free_energy)
+        try:
+            rate = self._r23(bs)/ m.exp(loose_free_energy - tight_free_energy)
+        except: ZeroDivisionError:
+            rate = 1
         return float(rate)
     
     def _r31(self, bs):
