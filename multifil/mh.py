@@ -231,7 +231,7 @@ class SingleSpringHead(object):
         ## Rate, as in pg 1209 of Tanner et al, 2007
         try:
             rate = self._r12(bs) / m.exp(g_1 - g_2)
-        except: ZeroDivisionError:
+        except ZeroDivisionError:
             rate = 1
         return float(rate)
     
@@ -267,7 +267,7 @@ class SingleSpringHead(object):
         g_3 = self._free_energy(bs, "tight")
         try:
             rate = self._r23(bs) / m.exp(g_2 - g_3)
-        except: ZeroDivisionError:
+        except ZeroDivisionError:
             rate = 1
         return float(rate)
     
@@ -524,7 +524,7 @@ class Head(object):
         tight_free_energy = self._free_energy(bs, "tight")
         try:
             rate = self._r23(bs)/ m.exp(loose_free_energy - tight_free_energy)
-        except: ZeroDivisionError:
+        except ZeroDivisionError:
             rate = 1
         return float(rate)
     
