@@ -11,6 +11,7 @@ import sys
 import time
 import string
 import copy
+import itertools
 import subprocess as subp
 import configparser
 import boto
