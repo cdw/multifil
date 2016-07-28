@@ -527,6 +527,19 @@ class ThinFilament(object):
         # Return the combination of the two
         return np.add(thin, binding_sites)
     
+    def settle(self):
+        """Reduce the total axial force on the system by moving the crowns"""
+        # Total axial force on each point
+        forces = self.axialforce()
+        # Individual displacements needed to balance force
+        isolated = 0.95*forces/self.k 
+        isolated[0] *= 2 # First node has spring on only one side
+        # Cumulative displacements, working back from z-disk
+        cumulative = np.flipud(np.cumsum(np.flipud(isolated)))
+        # New axial locations
+        self.axial += cumulative
+        return forces
+    
     def radial_force_of_each_node(self):
         """The radial force produced at each binding site node
         

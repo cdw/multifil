@@ -525,7 +525,9 @@ class ThickFilament(object):
         return (self.axial[0] - self.b_z) * self.k
     
     def axial_force_of_each_crown(self, axial_locations=None):
-        """Return a list of the axial force on each crown"""
+        """Return the total cross-bridge force on each crown
+        This does not take into account the force from thick filament springs
+        """
         if axial_locations == None:
             axial_force = [cr.axialforce() for cr in self.crowns]
         else:
@@ -550,6 +552,19 @@ class ThickFilament(object):
         crown = self.axial_force_of_each_crown(axial_locations)
         # Return the combination of backbone and crown forces
         return np.add(thick, crown)
+    
+    def settle(self):
+        """Reduce the total axial force on the system by moving the crowns"""
+        # Total axial force on each point
+        forces = self.axialforce()
+        # Individual displacements needed to balance force
+        isolated = 0.95*forces/self.k 
+        isolated[-1] *= 2 # Last node has spring on only one side
+        # Cumulative displacements
+        cumulative = np.cumsum(isolated)
+        # New axial locations
+        self.axial += cumulative
+        return forces
     
     def radialtension(self):
         """The radial tension this filament experiences

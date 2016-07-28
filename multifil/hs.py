@@ -281,10 +281,8 @@ class hs(object):
         self.current_timestep += 1
         # Update bound states
         self.last_transitions = [thick.transition() for thick in self.thick]
-        # Balance forces
-        # TODO Implement solution caching to speed calculations
-        dist = self.balance()
-        return dist
+        # Settle forces
+        self.settle()
     
     def axialforce(self):
         """Sum of each thick filament's axial force on the M-line """
@@ -314,6 +312,24 @@ class hs(object):
         # Write giant location list back to filaments
         self.reload_locations(soln_locs)
         return dist
+    
+    def _single_settle(self):
+        """Settle down now, just a little bit"""
+        thick = [thick.settle() for thick in self.thick]
+        thin = [thin.settle() for thin in self.thin]
+        return np.max((np.max(np.abs(thick)), np.max(np.abs(thin))))
+    
+    def settle(self):
+        """Jiggle those locations around until the residual forces are low
+        
+        We choose the convergence limit so that 95% of thermal forcing events
+        result in a deformation that produces more axial force than the 
+        convergence value, 0.12pN.
+        """
+        converge_limit=0.12 # see doc string
+        converge = self._single_settle()
+        while converge>converge_limit:
+            converge = self._single_settle()
     
     def _all_forces_for_balance(self, locs):
         """Give axial forces at all points, given all axial locations
