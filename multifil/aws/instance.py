@@ -117,11 +117,12 @@ class queue_eater(object):
     def new_proc(self):
         """Launch a new process from the current meta message"""
         try:
-            message_body = self.meta.get_body()
-            log_it("Gonna run "+message_body)
+            self.message_body = self.meta.get_body()
+            log_it("Gonna run "+self.message_body)
             self.process = mp.Process(target = run.manage,
-                                      args = (message_body,))
+                                      args = (self.message_body,))
             self.process.start()
+            self.start_time = time.time()
         except Exception as e:
             running_error(e)
             self.shutdown()
@@ -132,6 +133,9 @@ class queue_eater(object):
             return True
         else:
             self.process.join() # wait until process really terminates
+            took = int(time.time() - self.start_time)
+            hr, min, sec = took/60/60, took/60%60, took%60
+            log_it("Took %i:%i:%i to run %s"%(hr, min, sec, self.message_body))
             return False
     
     def new_meta(self):
