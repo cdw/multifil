@@ -35,7 +35,7 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
     
     emit_meta is intended as the counterpoint to the manage class and 
     execute_run. Import emit_run into an interactive workspace and populate 
-    a directory with run configurations to be executed by a cluster of machines. 
+    a directory with run configurations to be executed by a cluster.
     
     
     Parameters
