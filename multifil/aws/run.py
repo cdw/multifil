@@ -146,20 +146,82 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
         rund['lattice_spacing'] = lattice_spacing
         rund['lattice_spacing_func'] = None
     # Define variable actin permissiveness
-    def variable_actin_permissiveness(amp, period, on, duration, sharp):
-        """Requires amplitude, period of stim cycle, offset of turn-on from
-        start of a cycle, duration of on time, and sharpness (lower is more
-        gentle) of transition"""
-        sig = lambda on, x: \
-                0.5*amp*(np.tanh(sharp*(x-on))-np.tanh(sharp*(x-on-duration)))
-        cycle_number = int(time[-1])//period+1
-        return np.sum([sig(on+period*i, time) for i in range(cycle_number)], 0)
-    string_ap = """
-        sigmoid = lambda amp, on, duration, sharp, x: 
-            0.5*amp*(np.tanh(sharp*(x-on))-np.tanh(sharp*(x-on-duration)))
-        bumps = lambda amp, on, duration, sharp, period, x: 
-            np.sum([sigmoid(amp, on+period*i, duration, sharp, x) 
-            for i in range(int(x[-1])//period+1)],0) """
+    def variable_actin_permissiveness(cycle_period, phase, stim_duration, 
+                                      influx_time, half_life):
+        """Requires period of stim cycle, phase relative to longest length
+        point, duration of on time, time from 10 to 90% influx level, and 
+        the half-life of the Ca2+ out-pumping.
+        """
+        # Things we need to know for the shape of a single cycle
+        decay_rate = np.log(1/2)/half_life
+        growth_rate = 0.5*influx_time
+        max_signal = 1.0
+        # Things we need to know for the cyclical nature of the signal 
+        run_step_number = timestep_number #for ease of reading
+        cycle_step_number = int(cycle_period/timestep_length)
+        cycle_time_trace = np.arange(0, cycle_period, timestep_length)
+        steps_before_stim = np.argwhere(
+            cycle_time_trace>=(cycle_period*phase))[0][0]
+        stim_step_number = int(stim_duration/timestep_length)
+        no_stim_step_number = cycle_step_number - stim_step_number
+        # Things we need to know for smoothing
+        sd = 1 #standard deviation of smoothing window in ms
+        sw = 3 #smoothing window in ms
+        base_normal = np.exp(-np.arange(-sw,sw,timestep_length)**2/(2*sd**2))
+        normal = base_normal/sum(base_normal)
+        # Step through, generating signal
+        out = [0.1]
+        for i in range(steps_before_stim):
+            out.append(out[-1])
+        while len(out)<(4*cycle_step_number+run_step_number):
+            for i in range(stim_step_number):
+                growth = timestep_length * out[-1] * (growth_rate) *\
+                        (1-out[-1]/max_signal)
+                out.append(out[-1]+growth)
+            for i in range(no_stim_step_number):
+                decay = timestep_length * out[-1] * decay_rate
+                out.append(out[-1]+decay)
+        # Smooth signal 
+        out = np.convolve(normal, out)
+        return out[2*cycle_step_number:2*cycle_step_number+run_step_number]
+    string_ap = """ def variable_actin_permissiveness(cycle_period, phase, stim_duration, 
+                                      influx_time, half_life):
+        \"\"\"Requires period of stim cycle, phase relative to longest length
+        point, duration of on time, time from 10 to 90% influx level, and 
+        the half-life of the Ca2+ out-pumping.
+        \"\"\"
+        # Things we need to know for the shape of a single cycle
+        decay_rate = np.log(1/2)/half_life
+        growth_rate = 0.5*influx_time
+        max_signal = 1.0
+        # Things we need to know for the cyclical nature of the signal 
+        run_step_number = timestep_number #for ease of reading
+        cycle_step_number = int(cycle_period/timestep_length)
+        cycle_time_trace = np.arange(0, cycle_period, timestep_length)
+        steps_before_stim = np.argwhere(
+            cycle_time_trace>=(cycle_period*phase))[0][0]
+        stim_step_number = int(stim_duration/timestep_length)
+        no_stim_step_number = cycle_step_number - stim_step_number
+        # Things we need to know for smoothing
+        sd = 1 #standard deviation of smoothing window in ms
+        sw = 3 #smoothing window in ms
+        base_normal = np.exp(-np.arange(-sw,sw,timestep_length)**2/(2*sd**2))
+        normal = base_normal/sum(base_normal)
+        # Step through, generating signal
+        out = [0.1]
+        for i in range(steps_before_stim):
+            out.append(out[-1])
+        while len(out)<(4*cycle_step_number+run_step_number):
+            for i in range(stim_step_number):
+                growth = timestep_length * out[-1] * (growth_rate) *\
+                        (1-out[-1]/max_signal)
+                out.append(out[-1]+growth)
+            for i in range(no_stim_step_number):
+                decay = timestep_length * out[-1] * decay_rate
+                out.append(out[-1]+decay)
+        # Smooth signal 
+        out = np.convolve(normal, out)
+        return out[2*cycle_step_number:2*cycle_step_number+run_step_number]"""
     # Parse actin permissiveness 
     rund['actin_permissiveness_args'] = str(actin_permissiveness) # For pandas
     if hasattr(actin_permissiveness, "__iter__"):
