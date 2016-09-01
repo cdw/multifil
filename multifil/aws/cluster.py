@@ -22,14 +22,14 @@ BASE_PATH = os.path.abspath(os.path.split(__file__)[0]+'/../..')+'/'
 CODE_DIR = 'multifil'
 CODE_LOCATION =  BASE_PATH + CODE_DIR
 USER_DATA = CODE_LOCATION + '/aws/userdata.py'
-CODE_BUCKET = 'model_code'
-JOB_QUEUE = 'job_queue'
+CODE_BUCKET = 'model-code'
+JOB_QUEUE = 'job-queue'
 STATUS_QUEUE = 'status-queue'
-KEY_FILE = os.path.expanduser('~/.aws/keys/id_gsg-keypair')
-KEY_NAME = 'gsg-keypair' 
-SECURITY_GROUP_ID = 'sg-1ddae166'
-SUBNET_IDS = ('subnet-945f5ca9', 'subnet-c9ce2b80', # each corresponds to
-              'subnet-64e6d34e', 'subnet-bd94a0e5') # an availability zone
+KEY_FILE = os.path.expanduser('~/.aws/keys/id_aws')
+KEY_NAME = 'id_aws' 
+SECURITY_GROUP_ID = 'sg-2a31b650'
+SUBNET_IDS = ('subnet-7653873f', 'subnet-a5957299', # each corresponds to a
+              'subnet-00ff1b2d', 'subnet-39a5bf61') # VPC availability zone
 AMI = ('ami-2d39803a', 'c4.xlarge') # Ubuntu
 SPOT_BID = 0.209 # bidding the on-demand price
 
