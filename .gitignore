@@ -61,3 +61,5 @@ target/
 aws/test_instance
 multifil.zip
 notes/
+
+.DS_Store
