@@ -129,8 +129,12 @@ def watch_cluster():
             print("\nMy watch has ended")
             break
         except AttributeError: #no message to read body from
-            time.sleep(3)
-            pass
+            try: 
+                time.sleep(3)
+                pass
+            except KeyboardInterrupt:
+                print("\nMy watch has ended")
+                break
 
 
 class cluster(object):
