@@ -131,8 +131,10 @@ class hs(object):
         thin_orientations = ([4,0,2], [3,5,1], [4,0,2], [3,5,1], 
                 [3,5,1], [4,0,2], [3,5,1], [4,0,2]) 
         np.random.seed()
+        thin_starts = [np.random.randint(25) for i in thin_orientations]        
         thin_ids = range(len(thin_orientations))
-        new_thin = lambda id: af.ThinFilament(self, id, thin_orientations[id])
+        new_thin = lambda id: af.ThinFilament(self, id, thin_orientations[id],
+                                              thin_starts[id])
         self.thin = tuple([new_thin(id) for id in thin_ids])
         # Determine the hiding line
         self.update_hiding_line()
