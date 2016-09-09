@@ -120,10 +120,31 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
     ## Generate and store variable traces
     time = np.arange(0, timestep_number*timestep_length, timestep_length)
     # Define variable sarcomere length/z-line distance
-    def variable_z_line(offset, amp, period):
-        """Takes offset from zero, peak-to-peak amp, and period in ms"""
-        return offset + 0.5 * amp * np.cos(2*np.pi*time/period)
-    string_zln = "lambda offset, amp, period, time: offset + 0.5 * amp * np.cos(2*np.pi*time/period)"
+    def variable_z_line(L0, hold_time, L0_per_sec):
+        """Takes initial length, time to hold there, & shortening in L0/sec"""
+        # Things we need to know for the shortening
+        run_step_number = timestep_number #for ease of reading
+        hold_steps = int(hold_time/timestep_length)
+        shorten_steps = run_step_number - hold_steps
+        nm_per_step = timestep_length * 1/1000 * L0_per_sec * L0
+        # Construct the length signal
+        z_line = [L0 for i in range(hold_steps)]
+        for i in range(shorten_steps):
+            z_line.append(z_line[-1] - nm_per_step)
+        return z_line
+    string_zln = """
+        def variable_z_line(L0, hold_time, L0_per_sec):
+            # Things we need to know for the shortening
+            run_step_number = timestep_number #for ease of reading
+            hold_steps = int(hold_time/timestep_length)
+            shorten_steps = run_step_number - hold_steps
+            nm_per_step = timestep_length * 1/1000 * L0_per_sec
+            # Construct the length signal
+            z_line = [L0 for i in range(hold_steps)]
+            for i in range(shorten_steps):
+                z_line.append(z_line[-1] - nm_per_step)
+            return z_line
+        """    
     # Parse sarcomere length
     rund['z_line_args'] = str(z_line) # For easier parsing by pandas
     if hasattr(z_line, "__iter__"):
