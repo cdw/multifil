@@ -478,6 +478,7 @@ class Head(object):
         occurs in one particular timestep, the stochastic rate.
         Takes:
             bs: relative Crown to Actin distance (x,y)
+            ap: Actin binding permissiveness, from 0 to 1
         Returns:
             rate: probability of transition occurring this timestep
         """
@@ -505,9 +506,13 @@ class Head(object):
         loose_energy = self.energy(bs, "loose")
         tight_energy = self.energy(bs, "tight")
         ## Rate taken from single cross-bridge work
-        #rate = (.1 * (1 + m.tanh(.4 * (loose_energy - tight_energy) + 4)) \
+        #rate = (0.1 * (1 + m.tanh(4 + 0.4 * (loose_energy - tight_energy)))
         #        +.001) * self.timestep
-        rate = 10*(.1 * (1 + m.tanh(.4 * (loose_energy - tight_energy) + 4)) \
+        # Concerned that the below is higher rates than originally proposed,
+        # probably something that I previously documented.
+        #rate = 10*(.1 * (1 + m.tanh(.4 * (loose_energy - tight_energy) + 4)) \
+        #        +.001) * self.timestep
+        rate = (.1 * (1 + m.tanh(.4 * (loose_energy - tight_energy) + 9)) 
                 +.001) * self.timestep
         return float(rate)
     
