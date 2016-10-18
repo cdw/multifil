@@ -117,24 +117,33 @@ def watch_cluster():
     #Make it work
     sqs = boto.connect_sqs()
     status_queue = sqs.get_queue(STATUS_QUEUE)
+    ec2 = boto.connect_ec2()
     print("Starting cluster watch, ^c to stop")
     while True: #quit via ^C
         try:
-            msg = status_queue.read()
-            body = msg.get_body()
-            style = styles[int(body.split('-')[1].split('.')[-1])%len(styles)]
-            print(style+body)
-            status_queue.delete_message(msg)
-        except KeyboardInterrupt:
+            # Gather and report messages
+            if status_queue.count()>0:
+                while True:
+                    msg = status_queue.read()
+                    body = msg.get_body()
+                    last_ip = int(body.split('-')[1].split('.')[-1])
+                    style = styles[last_ip%len(styles)]
+                    print(style+body)
+                    status_queue.delete_message(msg)
+            # Make sure some instances are running
+            running_instances = ec2.get_all_instances(
+                filters=({'instance-state-code':0, 
+                          'instance-state-code':16}))
+            if len(running_instances) == 0:
+                print("\nNo running instances found")
+                break
+            # Don't hammer the connection
+            time.sleep(3)
+        except KeyboardInterrupt: #^c pressed
             print("\nMy watch has ended")
             break
         except AttributeError: #no message to read body from
-            try: 
-                time.sleep(3)
-                pass
-            except KeyboardInterrupt:
-                print("\nMy watch has ended")
-                break
+            pass
 
 
 class cluster(object):
