@@ -538,12 +538,14 @@ class Head(object):
         
         Takes:
             bs: relative Crown to Actin distance (x,y)
-        Returns:
+        Returns
             rate: probability of detaching from the binding site
         """
         ## Based on the energy in the tight state
+        loose_energy = self.energy(bs, "loose")
         tight_energy = self.energy(bs, "tight")
-        rate =  (m.sqrt(.01 * tight_energy) + 0.02) * self.timestep
+        rate =  (m.sqrt(0.0015 * abs(loose_energy-tight_energy)) +
+                 0.015*loose_energy - 0.06) * self.timestep
         return float(rate)
     
     def _free_energy(self, tip_location, state):
