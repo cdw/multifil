@@ -31,6 +31,7 @@ SECURITY_GROUP_ID = 'sg-2a31b650'
 SUBNET_IDS = ('subnet-7653873f', 'subnet-a5957299', # each corresponds to a
               'subnet-00ff1b2d', 'subnet-39a5bf61') # VPC availability zone
 AMI = ('ami-2d39803a', 'c4.xlarge') # Ubuntu
+HD_SIZE = 200 # primary drive size in GB
 SPOT_BID = 0.209 # bidding the on-demand price
 
 
@@ -50,6 +51,11 @@ def get_access_keys(filename=os.path.expanduser('~/.aws/credentials'),
     id = config.get(section,'aws_access_key_id')
     secret = config.get(section,'aws_secret_access_key')
     return id, secret
+
+def get_bdm(ec2=boto.connect_ec2(), ami=AMI[0], size=HD_SIZE):
+    bdm = ec2.get_image(ami).block_device_mapping
+    bdm['/dev/sda1'].size = size
+    return bdm
 
 def load_userdata(filename='userdata.py', queue_name=JOB_QUEUE):
     id, secret = get_access_keys()
@@ -87,6 +93,7 @@ def launch_on_demand_instances(ec2, num_of, userdata,
         min_count          = num_of,
         max_count          = num_of,
         subnet_id          = SUBNET_IDS[1])
+        block_device_map   = get_bdm(ec2))
     time.sleep(.5) # Give the machines time to register
     nodes = copy.copy(reservation.instances)
     return nodes
@@ -105,6 +112,7 @@ def launch_spot_instances(ec2, num_of, userdata, bid=SPOT_BID,
         instance_type      = inst_type,
         count              = num_of,
         subnet_id          = SUBNET_IDS[1])
+        block_device_map   = get_bdm(ec2))
     time.sleep(.5) # Give the machines time to register
     return reservation
 
