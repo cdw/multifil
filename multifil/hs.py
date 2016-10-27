@@ -225,6 +225,8 @@ class hs(object):
         if actin_permissiveness is None:
                 actin_permissiveness = 1.0
         self.actin_permissiveness = actin_permissiveness
+        # Track how long we've been running
+        self.current_timestep = 0
      
     def run(self, time_steps=100, callback=None, bar=True):
         """Run the model for the specified number of timesteps
@@ -265,14 +267,32 @@ class hs(object):
                 bar(i, time_steps, toc, time.time()-tic, proc_name)
         return output
     
-    def timestep(self):
+    def timestep(self, current=None):
         """Move the model one step forward in time, allowing the 
         myosin heads a chance to bind and then balancing forces
         """
+        # Record our passage through time
+        if current is not None:
+            self.current_timestep = current
+        else:
+            self.current_timestep += 1
+        # Update bound states
+        self.last_transitions = [thick.transition() for thick in self.thick]
+        # Settle forces
+        self.settle()
+   
+    @property
+    def current_timestep(self):
+        """Return the current timestep"""
+        return self._current_timestep
+    
+    @current_timestep.setter
+    def current_timestep(self, new_timestep):
+        """Set the current timestep"""
         # Update boundary conditions
         self.update_hiding_line()
         td = self.time_dependence
-        i = self.current_timestep
+        i = new_timestep
         if td is not None:
             if 'lattice_spacing' in td:
                 self.lattice_spacing = td['lattice_spacing'][i] 
@@ -280,12 +300,8 @@ class hs(object):
                 self.z_line = td['z_line'][i] 
             if 'actin_permissiveness' in td:
                 self.actin_permissiveness = td['actin_permissiveness'][i]
-        # Record our passage through time
-        self.current_timestep += 1
-        # Update bound states
-        self.last_transitions = [thick.transition() for thick in self.thick]
-        # Settle forces
-        self.settle()
+        self._current_timestep = i
+        return
     
     def axialforce(self):
         """Sum of each thick filament's axial force on the M-line """
