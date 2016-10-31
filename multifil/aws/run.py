@@ -372,7 +372,7 @@ class manage(object):
         np.random.seed()
         tic = time.time()
         for timestep in range(self.meta['timestep_number']):
-            self.sarc.timestep()
+            self.sarc.timestep(timestep)
             self.datafile.append()
             self.sarcfile.append()
             # Update on how it is going
