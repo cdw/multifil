@@ -8,6 +8,7 @@ Created by Dave Williams on 2016-07-05
 
 import sys
 import os
+import traceback
 import time
 import optparse
 import urllib.request 
