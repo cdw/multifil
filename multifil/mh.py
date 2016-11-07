@@ -512,7 +512,7 @@ class Head(object):
         # probably something that I previously documented.
         #rate = 10*(.1 * (1 + m.tanh(.4 * (loose_energy - tight_energy) + 4)) \
         #        +.001) * self.timestep
-        rate = (.1 * (1 + m.tanh(.4 * (loose_energy - tight_energy) + 9)) 
+        rate = 10*(.1 * (1 + m.tanh(.4 * (loose_energy - tight_energy) + 4)) \
                 +.001) * self.timestep
         return float(rate)
     
