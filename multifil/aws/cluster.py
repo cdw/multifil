@@ -57,6 +57,7 @@ def get_access_keys(filename=os.path.expanduser('~/.aws/credentials'),
 def get_bdm(ec2=boto.connect_ec2(), ami=AMI[0], size=HD_SIZE):
     bdm = ec2.get_image(ami).block_device_mapping
     bdm['/dev/sda1'].size = size
+    bdm['/dev/sda1'].encrypted = None
     return bdm
 
 def load_userdata(filename='userdata.py', queue_name=JOB_QUEUE):
