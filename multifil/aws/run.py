@@ -58,8 +58,8 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
     lattice_spacing: float or tuple, optional
         Same as for z-line. The tuple format is currently: (rest_ls, rest_zln)
     actin_permissiveness: float or tuple, optional
-        Same as for z-line. The tuple format is currently: (amp, period, on, 
-        duration, sharp)
+        Same as for z-line. The tuple format is currently: (cycle_period, phase, 
+        stim_duration, influx_time, half_life)
     comment: string, optional
         Space for comment on the purpose or other characteristics of the run
     write: bool, optional
