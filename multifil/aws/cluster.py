@@ -28,9 +28,12 @@ STATUS_QUEUE = 'status-queue'
 KEY_FILE = os.path.expanduser('~/.aws/keys/id_aws')
 KEY_NAME = 'id_aws' 
 SECURITY_GROUP_ID = 'sg-2a31b650'
-SUBNET_IDS = ('subnet-7653873f', 'subnet-a5957299', # each corresponds to a
-              'subnet-00ff1b2d', 'subnet-39a5bf61') # VPC availability zone
+SUBNET_IDS = {'us-east-1a':'subnet-7653873f', # map an availability zone
+              'us-east-1e':'subnet-a5957299', # to the right VPC
+              'us-east-1d':'subnet-00ff1b2d', 
+              'us-east-1b':'subnet-39a5bf61'} 
 AMI = ('ami-2d39803a', 'c4.xlarge') # Ubuntu
+HD_SIZE = 200 # primary drive size in GB
 SPOT_BID = 0.209 # bidding the on-demand price
 
 
@@ -50,6 +53,12 @@ def get_access_keys(filename=os.path.expanduser('~/.aws/credentials'),
     id = config.get(section,'aws_access_key_id')
     secret = config.get(section,'aws_secret_access_key')
     return id, secret
+
+def get_bdm(ec2=boto.connect_ec2(), ami=AMI[0], size=HD_SIZE):
+    bdm = ec2.get_image(ami).block_device_mapping
+    bdm['/dev/sda1'].size = size
+    bdm['/dev/sda1'].encrypted = None
+    return bdm
 
 def load_userdata(filename='userdata.py', queue_name=JOB_QUEUE):
     id, secret = get_access_keys()
@@ -86,7 +95,8 @@ def launch_on_demand_instances(ec2, num_of, userdata,
         instance_type      = inst_type,
         min_count          = num_of,
         max_count          = num_of,
-        subnet_id          = SUBNET_IDS[1])
+        subnet_id          = SUBNET_IDS['us-east-1a'], 
+        block_device_map   = get_bdm(ec2))
     time.sleep(.5) # Give the machines time to register
     nodes = copy.copy(reservation.instances)
     return nodes
@@ -96,6 +106,10 @@ def launch_spot_instances(ec2, num_of, userdata, bid=SPOT_BID,
     if len(userdata) > 16*1024:
         print("error: User data file is too big")
         return
+    # Choose cheapest availability zone
+    sphs = ec2.get_spot_price_history(filters={'instance_type':inst_type})
+    prices = [sph.price for sph in sphs]
+    availability_zone = sphs[prices.index(min(prices))].availability_zone
     reservation = ec2.request_spot_instances(
         price              = bid, 
         image_id           = ami,
@@ -104,7 +118,9 @@ def launch_spot_instances(ec2, num_of, userdata, bid=SPOT_BID,
         user_data          = userdata.encode('ascii'),
         instance_type      = inst_type,
         count              = num_of,
-        subnet_id          = SUBNET_IDS[1])
+        placement          = availability_zone,
+        subnet_id          = SUBNET_IDS[availability_zone],
+        block_device_map   = get_bdm(ec2))
     time.sleep(.5) # Give the machines time to register
     return reservation
 

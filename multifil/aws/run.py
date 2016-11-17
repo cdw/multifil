@@ -351,7 +351,7 @@ class manage(object):
         np.random.seed()
         tic = time.time()
         for timestep in range(self.meta['timestep_number']):
-            self.sarc.timestep()
+            self.sarc.timestep(timestep)
             self.datafile.append()
             self.sarcfile.append()
             # Update on how it is going
@@ -361,8 +361,10 @@ class manage(object):
         self._copy_file_to_final_location(self.metafile)
         data_final_name = self.datafile.finalize()
         self._copy_file_to_final_location(data_final_name)
+        self.datafile.delete() # clean up temp files
         sarc_final_name = self.sarcfile.finalize()
         self._copy_file_to_final_location(sarc_final_name)
+        self.sarcfile.delete() # clean up temp files
         self._log_it("uploading finished, done with this run")
     
     def _run_status(self, timestep, start, every):
@@ -413,6 +415,10 @@ class sarc_file(object):
             zip.write(self.working_filename)
         os.remove(self.working_filename)
         return self.zip_filename
+    
+    def delete(self):
+        """Delete the sarc zip file from disk"""
+        os.remove(self.zip_filename)
 
 
 class data_file(object):
@@ -500,10 +506,16 @@ class data_file(object):
         """Write the data dict to the temporary file location"""
         data_name = '/'+self.meta['name']+'.data.json'
         self.working_filename = self.working_directory + data_name
-        # Temporary location
         with open(self.working_filename, 'w') as datafile:
             json.dump(self.data_dict, datafile, sort_keys=True)
         return self.working_filename
+    
+    def delete(self):
+        """Delete the data file from disk"""
+        try: 
+            os.remove(self.working_filename)
+        except FileNotFoundError:
+            print("File not created yet")
 
 
 class s3(object):

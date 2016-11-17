@@ -21,7 +21,7 @@ class hs(object):
     """The half-sarcomere and ways to manage it"""
     def __init__(self, lattice_spacing=None, z_line=None,
                 actin_permissiveness=None, timestep_len=1,
-                time_dependence=None):
+                time_dependence=None, starts=None):
         """ Create the data structure that is the half-sarcomere model
         
         Parameters: 
@@ -109,7 +109,7 @@ class hs(object):
         """
         # Versioning, to be updated when backwards incompatible changes to the 
         # data structure are made, not on release of new features
-        self.version = 1.0 
+        self.version = 1.1 
         # Parse initial LS and Z-line
         if time_dependence is not None:
             if 'lattice_spacing' in time_dependence:
@@ -125,13 +125,15 @@ class hs(object):
         self.time_dependence = time_dependence
         self.lattice_spacing = lattice_spacing
         self.z_line = z_line
-        # Track how long we've been running
-        self.current_timestep = 0
         # Create the thin filaments, unlinked but oriented on creation.
         thin_orientations = ([4,0,2], [3,5,1], [4,0,2], [3,5,1], 
                 [3,5,1], [4,0,2], [3,5,1], [4,0,2]) 
         np.random.seed()
-        thin_starts = [np.random.randint(25) for i in thin_orientations]        
+        if starts is None:
+            thin_starts = [np.random.randint(25) for i in thin_orientations]
+        else:
+            thin_starts = starts[0]
+        self._thin_starts = thin_starts
         thin_ids = range(len(thin_orientations))
         new_thin = lambda id: af.ThinFilament(self, id, thin_orientations[id],
                                               thin_starts[id])
@@ -162,27 +164,32 @@ class hs(object):
         # |     a5      a3     |                     af      |
         # |         a4         |      m2         m2      m1  |
         # ----------------------------------------------------
+        if starts is None:
+            thick_starts = [np.random.randint(1, 4) for i in range(4)]
+        else:
+            thick_starts = starts[1]
+        self._thick_starts = thick_starts
         self.thick = (
                 mf.ThickFilament(self, 0, (
                     self.thin[0].thin_faces[1], self.thin[1].thin_faces[2], 
                     self.thin[2].thin_faces[2], self.thin[6].thin_faces[0],
                     self.thin[5].thin_faces[0], self.thin[4].thin_faces[1]), 
-                    np.random.randint(1, 4)),
+                    thick_starts[0]),
                 mf.ThickFilament(self, 1, (
                     self.thin[2].thin_faces[1], self.thin[3].thin_faces[2], 
                     self.thin[0].thin_faces[2], self.thin[4].thin_faces[0], 
                     self.thin[7].thin_faces[0], self.thin[6].thin_faces[1]), 
-                    np.random.randint(1, 4)),
+                    thick_starts[1]),
                 mf.ThickFilament(self, 2, (
                     self.thin[5].thin_faces[1], self.thin[6].thin_faces[2], 
                     self.thin[7].thin_faces[2], self.thin[3].thin_faces[0], 
                     self.thin[2].thin_faces[0], self.thin[1].thin_faces[1]), 
-                    np.random.randint(1, 4)),
+                    thick_starts[2]),
                 mf.ThickFilament(self, 3, (
                     self.thin[7].thin_faces[1], self.thin[4].thin_faces[2], 
                     self.thin[5].thin_faces[2], self.thin[1].thin_faces[0], 
                     self.thin[0].thin_faces[0], self.thin[3].thin_faces[1]), 
-                    np.random.randint(1, 4))
+                    thick_starts[3])
                 )
         # Now the thin filaments need to be linked to thick filaments, use
         # the face orders from above and the following arrangement:
@@ -225,6 +232,8 @@ class hs(object):
         if actin_permissiveness is None:
                 actin_permissiveness = 1.0
         self.actin_permissiveness = actin_permissiveness
+        # Track how long we've been running
+        self.current_timestep = 0
      
     def run(self, time_steps=100, callback=None, bar=True):
         """Run the model for the specified number of timesteps
@@ -265,14 +274,32 @@ class hs(object):
                 bar(i, time_steps, toc, time.time()-tic, proc_name)
         return output
     
-    def timestep(self):
+    def timestep(self, current=None):
         """Move the model one step forward in time, allowing the 
         myosin heads a chance to bind and then balancing forces
         """
+        # Record our passage through time
+        if current is not None:
+            self.current_timestep = current
+        else:
+            self.current_timestep += 1
+        # Update bound states
+        self.last_transitions = [thick.transition() for thick in self.thick]
+        # Settle forces
+        self.settle()
+   
+    @property
+    def current_timestep(self):
+        """Return the current timestep"""
+        return self._current_timestep
+    
+    @current_timestep.setter
+    def current_timestep(self, new_timestep):
+        """Set the current timestep"""
         # Update boundary conditions
         self.update_hiding_line()
         td = self.time_dependence
-        i = self.current_timestep
+        i = new_timestep
         if td is not None:
             if 'lattice_spacing' in td:
                 self.lattice_spacing = td['lattice_spacing'][i] 
@@ -280,12 +307,8 @@ class hs(object):
                 self.z_line = td['z_line'][i] 
             if 'actin_permissiveness' in td:
                 self.actin_permissiveness = td['actin_permissiveness'][i]
-        # Record our passage through time
-        self.current_timestep += 1
-        # Update bound states
-        self.last_transitions = [thick.transition() for thick in self.thick]
-        # Settle forces
-        self.settle()
+        self._current_timestep = i
+        return
     
     def axialforce(self):
         """Sum of each thick filament's axial force on the M-line """
@@ -493,6 +516,9 @@ class hs(object):
         sd = self.__dict__.copy() # sarc dict
         sd.pop('_timestep_len')
         sd['timestep_len'] = self.timestep_len
+        sd['current_timestep'] = self.current_timestep
+        # set act_perm as mean since prop access returns values at every point
+        sd['actin_permissiveness'] = np.mean(self.actin_permissiveness)
         sd['thick'] = [t.to_dict() for t in sd['thick']]
         sd['thin'] = [t.to_dict() for t in sd['thin']]
         return sd
@@ -507,13 +533,19 @@ class hs(object):
             import warnings
             warnings.warn("Versioning mismatch, reading %0.1f into %0.1f."
                           %(read, current))
+        # Get filaments in right orientations
+        self.__init__(
+            lattice_spacing=sd['lattice_spacing'], 
+            z_line=sd['z_line'],
+            actin_permissiveness=sd['actin_permissiveness'], 
+            timestep_len=sd['timestep_len'],
+            time_dependence=sd['time_dependence'],
+            starts=(sd['_thin_starts'], sd['_thick_starts'])
+            )
         # Local keys
-        self.timestep_len = sd['timestep_len']
         self.current_timestep = sd['current_timestep']
-        self.lattice_spacing = sd['lattice_spacing']
         self.z_line = sd['z_line']
         self.hiding_line = sd['hiding_line']
-        self.time_dependence = sd['time_dependence']
         if 'last_transitions' in sd.keys():
             self.last_transitions = sd['last_transitions']
         # Sub-structure keys
