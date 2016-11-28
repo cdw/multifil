@@ -464,6 +464,8 @@ class Head(object):
         ## The binding prob is dependent on the exp of the dist
         # Prob = \tau * \exp^{-dist^2} * timestep 
         probability = 72 * m.exp(-distance**2) * self.timestep
+        ## Limit the probability to 1.0
+        probability = probability*(probability<=1) + 1.0*(probability>1) 
         ## The binding prob is conditioned by the actin permissiveness
         probability *= ap
         ## Return the probability
