@@ -462,10 +462,10 @@ class Head(object):
         ## Find the distance to the binding site
         distance = m.hypot(bs[0]-tip[0], bs[1]-tip[1])
         ## The binding prob is dependent on the exp of the dist
+        ## and limited to be one or under
         # Prob = \tau * \exp^{-dist^2} * timestep 
-        probability = 72 * m.exp(-distance**2) * self.timestep
-        ## Limit the probability to 1.0
-        probability = probability*(probability<=1) + 1.0*(probability>1) 
+        unity = lambda p: p*(p<=1) + 1.0*(p>1)
+        probability = unity(72 * m.exp(-distance**2) * self.timestep)
         ## The binding prob is conditioned by the actin permissiveness
         probability *= ap
         ## Return the probability
