@@ -514,9 +514,11 @@ class Head(object):
         # probably something that I previously documented.
         #rate = 10*(.1 * (1 + m.tanh(.4 * (loose_energy - tight_energy) + 4)) \
         #        +.001) * self.timestep
-        rate = (.3 * (1 + m.tanh(.4 * (loose_energy - tight_energy) + 12)) 
-                +.001) * self.timestep
-        return float(rate)
+        rate = ((1 + m.tanh(.4 * (loose_energy - tight_energy) + 12)) 
+                +.001) # rate per ms
+        rate *= self.timestep # rate to per timestep
+        probability = 1 - m.exp(-rate) # rate to probability 
+        return float(probability)
     
     def _r32(self, bs):
         """The reverse transition, from tightly to loosely bound
