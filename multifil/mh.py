@@ -538,18 +538,19 @@ class Head(object):
         return float(rate)
     
     def _r31(self, bs):
-        """Probability of unbinding if tightly bound
+        """Per ms rate of unbinding if tightly bound
         
         Takes:
             bs: relative Crown to Actin distance (x,y)
         Returns
-            rate: probability of detaching from the binding site
+            rate: per ms rate of detaching from the binding site
         """
         ## Based on the energy in the tight state
         loose_energy = self.energy(bs, "loose")
         tight_energy = self.energy(bs, "tight")
-        rate =  (m.sqrt(0.0015 * abs(loose_energy-tight_energy)) +
-                 0.015*loose_energy - 0.06) * self.timestep
+        rate = (2* # overall rate modifier
+                m.tanh(0.02* # curve steepness parameter
+                       abs(tight_energy-loose_energy-11))) # x offset shifter
         return float(rate)
     
     def _free_energy(self, tip_location, state):
