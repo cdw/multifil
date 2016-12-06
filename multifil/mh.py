@@ -439,6 +439,20 @@ class Head(object):
     def timestep(self, timestep):
         """Set the length of time step used to calculate transitions"""
         self._timestep = timestep
+
+    def _prob(self, rate):
+        """Convert a rate to a probability, based on the current timestep
+        length and the assumption that the rate is for a Poisson process. 
+        We are asking, what is the probability that at least one Poisson 
+        distributed value would occur during the timestep.
+
+        Takes:
+            rate: a per ms rate to convert to probability
+        Returns:
+            probability: the probability the event occurs during a timestep
+                of length determined by self.timestep
+        """
+        return 1 - m.exp(-rate*self.timestep)
     
     def _bind(self, bs, ap):
         """Bind (or don't) based on the distance from the Head tip to a Actin
@@ -490,35 +504,26 @@ class Head(object):
         ## Rate, as in pg 1209 of Tanner et al, 2007
         ## With added reduced-detachment factor, increases dwell time
         try:
-            rate = self._bind(bs, ap) / m.exp(
+            prob = self._bind(bs, ap) / m.exp(
                 unbound_free_energy - loose_free_energy)
         except ZeroDivisionError:
             rate = 1
-        return float(rate)
+            prob = 1
     
     def _r23(self, bs):
         """Probability of becoming tightly bound if loosely bound
+        """Rate of becoming tightly bound if loosely bound
         
         Takes:
             bs: relative Crown to Actin distance (x,y)
         Returns:
             rate: probability of becoming tightly bound
+            rate: per ms rate of becoming tightly bound
         """
         ## The transition rate depends on state energies
         loose_energy = self.energy(bs, "loose")
         tight_energy = self.energy(bs, "tight")
-        ## Rate taken from single cross-bridge work
-        #rate = (0.1 * (1 + m.tanh(4 + 0.4 * (loose_energy - tight_energy)))
-        #        +.001) * self.timestep
-        # Concerned that the below is higher rates than originally proposed,
-        # probably something that I previously documented.
-        #rate = 10*(.1 * (1 + m.tanh(.4 * (loose_energy - tight_energy) + 4)) \
-        #        +.001) * self.timestep
-        rate = ((1 + m.tanh(.4 * (loose_energy - tight_energy) + 12)) 
-                +.001) # rate per ms
-        rate *= self.timestep # rate to per timestep
-        probability = 1 - m.exp(-rate) # rate to probability 
-        return float(probability)
+        ## Powerstroke rate, per ms
     
     def _r32(self, bs):
         """The reverse transition, from tightly to loosely bound
