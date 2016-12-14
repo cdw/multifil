@@ -160,8 +160,13 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
         run_step_number = timestep_number #for ease of reading
         cycle_step_number = int(cycle_period/timestep_length)
         cycle_time_trace = np.arange(0, cycle_period, timestep_length)
-        steps_before_stim = np.argwhere(
-            cycle_time_trace>=(cycle_period*phase))[0][0]
+        try:
+            steps_before_stim = np.argwhere(
+                cycle_time_trace>=(cycle_period*(phase%1)))[0][0]
+        except IndexError:
+            assert 0 == len(np.argwhere(
+                cycle_time_trace>=(cycle_period*(phase%1))))
+            steps_before_stim = 0 #b/c phase was 0.999 or similar
         stim_step_number = int(stim_duration/timestep_length)
         no_stim_step_number = cycle_step_number - stim_step_number
         # Things we need to know for smoothing
