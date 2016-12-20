@@ -357,14 +357,14 @@ class Head(object):
         check = random.rand()
         ## Check for transitions depending on the current state
         if self.state == "free":
-            if self._bind(bs, ap) > check: 
+            if self._prob(self._bind(bs))*ap > check:
                 self.state = "loose"
                 return '12'
         elif self.state == "loose":
             if self._prob(self._r23(bs)) > check:
                 self.state = "tight"
                 return '23'
-            elif (1 - self._prob(self._p21(bs))) < check:
+            elif (1 - self._prob(self._r21(bs))) < check:
                 self.state = "free"
                 return '21'
         elif self.state == "tight":
@@ -459,12 +459,11 @@ class Head(object):
         """
         return 1 - m.exp(-rate*self.timestep)
     
-    def _bind(self, bs, ap):
+    def _bind(self, bs):
         """Bind (or don't) based on the distance from the Head tip to a Actin
         
         Takes:
             bs: relative Crown to Actin distance (x,y)
-            ap: Actin binding permissiveness, from 0 to 1
         Returns:
             probability: chance of binding occurring during a timestep
         """
@@ -480,17 +479,13 @@ class Head(object):
             bop_right = bs[1] >= tip[1]
         ## Find the distance to the binding site
         distance = m.hypot(bs[0]-tip[0], bs[1]-tip[1])
-        ## The binding prob is dependent on the exp of the dist
-        ## and limited to be one or under
-        # Prob = \tau * \exp^{-dist^2} * timestep 
-        unity = lambda p: p*(p<=1) + 1.0*(p>1)
-        probability = unity(72 * m.exp(-distance**2) * self.timestep)
-        ## The binding prob is conditioned by the actin permissiveness
-        probability *= ap
-        ## Return the probability
-        return probability
     
-    def _p21(self, bs, ap):
+        ## The binding rate is dependent on the exp of the dist
+        # Rate = \tau * \exp^{-dist^2}
+        rate = 72 * m.exp(-distance**2)
+        ## Return the rate
+        return rate
+    def _r21(self, bs):
         """The reverse transition, from loosely bound to unbound
         
         This depends on the prob r12, the binding prob, which is given
@@ -499,7 +494,6 @@ class Head(object):
         occurs in one particular timestep, the stochastic probability.
         Takes:
             bs: relative Crown to Actin distance (x,y)
-            ap: Actin binding permissiveness, from 0 to 1
         Returns:
             prob: probability of transition
         """
@@ -509,12 +503,12 @@ class Head(object):
         ## Rate, as in pg 1209 of Tanner et al, 2007
         ## With added reduced-detachment factor, increases dwell time
         try:
-            prob = self._bind(bs, ap) / m.exp(
+            rate = self._bind(bs) / m.exp(
                 unbound_free_energy - loose_free_energy)
         except ZeroDivisionError:
-            prob = 1
-        return float(prob)
     
+            rate = 1
+        return float(rate)
     def _r23(self, bs):
         """Rate of becoming tightly bound if loosely bound
         
