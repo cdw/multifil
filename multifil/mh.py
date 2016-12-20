@@ -534,7 +534,7 @@ class Head(object):
         Takes:
             bs: relative Crown to Actin distance (x,y)
         Returns:
-            rate: per ms rate of transition 
+            rate: per ms rate of transition
         """
         ## Governed as in self_p21
         loose_free_energy = self._free_energy(bs, "loose")
@@ -603,14 +603,14 @@ class Crossbridge(Head):
         """
         # Do that super() voodoo that instantiates the parent Head
         super(Crossbridge, self).__init__()
-        # What is your name, where do you sit on the parent face? 
+        # What is your name, where do you sit on the parent face?
         self.index = index
         # What log are you a bump upon?
         self.parent_face = parent_face
         # Remember who thou art squaring off against
         self.thin_face = thin_face
         # How can I ever find you?
-        self.address = ('xb', self.parent_face.parent_filament.index, 
+        self.address = ('xb', self.parent_face.parent_filament.index,
                         self.parent_face.index, self.index)
         # Remember if thou art bound unto an actin
         self.bound_to = None # None if unbound, BindingSite object otherwise
@@ -645,7 +645,7 @@ class Crossbridge(Head):
         return xbd
        
     def from_dict(self, xbd):
-        """ Load values from a crossbridge dict. Values read in correspond 
+        """ Load values from a crossbridge dict. Values read in correspond
         to the current output documented in to_dict.
         """
         # Check for index mismatch
