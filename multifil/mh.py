@@ -364,14 +364,14 @@ class Head(object):
             if self._prob(self._r23(bs)) > check:
                 self.state = "tight"
                 return '23'
-            elif self._p21(bs, ap) > check: 
+            elif (1 - self._prob(self._p21(bs))) < check:
                 self.state = "free"
                 return '21'
         elif self.state == "tight":
             if self._prob(self._r31(bs)) > check:
                 self.state = "free"
                 return '31'
-            elif self._prob(self._r32(bs)) > check: 
+            elif (1 - self._prob(self._r32(bs))) < check:
                 self.state = "loose"
                 return '32'
         # Got this far? Than no transition occurred!
