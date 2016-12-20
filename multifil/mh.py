@@ -485,6 +485,7 @@ class Head(object):
         rate = 72 * m.exp(-distance**2)
         ## Return the rate
         return rate
+    
     def _r21(self, bs):
         """The reverse transition, from loosely bound to unbound
         
@@ -509,6 +510,7 @@ class Head(object):
     
             rate = 1
         return float(rate)
+    
     def _r23(self, bs):
         """Rate of becoming tightly bound if loosely bound
         
