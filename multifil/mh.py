@@ -314,16 +314,21 @@ class SingleSpringHead(object):
 class Head(object):
     """Head implements a single myosin head"""
     def __init__(self):
-        """Create the springs that make up the head and set energy values"""
+        """Create the springs that make up the head and set energy values
+        Values are choosen for consistancy with single spring rest lengths
+        and rest lattice spacings. More documentaion in the single spring
+        code. All numerical values referenced are discussed in single
+        crossbridge PLOS paper.
+        """
         # Remember thine kinetic state
         self.state = "free"
         # Create the springs which make up the head
-        self.c = Spring({
-        self.g = Spring({
+        self.c = Spring({   # the converter domain
             'rest_weak': radians(47.16),
             'rest_strong': radians(73.20),
             'konstant_weak': 40,
             'konstant_strong': 40})
+        self.g = Spring({   # the globular domain
             'rest_weak': 19.93,
             'rest_strong': 16.47,
             'konstant_weak': 2,
