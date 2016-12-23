@@ -407,8 +407,8 @@ class ThickFilament(object):
         self.index = index
         self.address = ('thick_fil', index)
         # Create a list of crown axial locations and relevant data
-        bare_zone = 58 # Length of the area before any crowns
-        crown_spacing = 14.3 # Spacing between adjacent crowns
+        bare_zone = 58 # Length of the area before any crowns, nm
+        crown_spacing = 14.3 # Spacing between adjacent crowns, nm
         n_cr = 60 # Number of myosin crowns
         self.axial = [bare_zone + n*crown_spacing for n in range(n_cr)]
         self.rests = np.diff(np.hstack([0, self.axial])) 
@@ -645,6 +645,7 @@ class ThickFilament(object):
         dists = np.diff(axial_locations)
         spring_force = (dists - self.rests) * self.k
         spring_force = np.hstack([spring_force, 0]) # Last node not connected
+        # Zero would be the force of titin, were it in the model
         net_force_at_crown = np.diff(spring_force) 
         return net_force_at_crown
     
