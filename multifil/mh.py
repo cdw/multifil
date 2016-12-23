@@ -555,11 +555,8 @@ class Head(object):
             rate: per ms rate of detaching from the binding site
         """
         ## Based on the energy in the tight state
-        loose_energy = self.energy(bs, "loose")
         tight_energy = self.energy(bs, "tight")
-        rate = (2* # overall rate modifier
-                m.tanh(0.02* # curve steepness parameter
-                       abs(tight_energy-loose_energy-11))) # x offset shifter
+        rate = m.sqrt(0.01*tight_energy) + 0.02
         return float(rate)
     
     def _free_energy(self, tip_location, state):
