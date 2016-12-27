@@ -315,7 +315,6 @@ class ThinFilament(object):
             parent_lattice: the calling half-sarcomere instance
             index: which thin filament this is (0-7)
             face_orientations: list of faces' numerical orientation (0-5)
-            z_line: the location of the end of the thin filament (1250 nm)
             start: which of the 26 actin monomers in an actin
                 repeating unit this filament begins with (defaults
                 to the first)
