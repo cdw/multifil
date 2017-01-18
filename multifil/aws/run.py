@@ -17,6 +17,7 @@ Created by Dave Williams on 2016-07-02
 import sys
 import os
 import shutil
+import subprocess
 import time
 import uuid
 import ujson as json
@@ -415,9 +416,8 @@ class sarc_file(object):
         """Close the current sarcomere file for proper JSON formatting"""
         self.working_file.write('\n]')
         self.working_file.close()
-        self.zip_filename = self.working_filename[:-4]+'zip'
-        with zipfile.ZipFile(self.zip_filename, 'w', zipfile.ZIP_LZMA) as zip:
-            zip.write(self.working_filename)
+        self.zip_filename = self.working_filename[:-4]+'tar.gz'
+        cp = subprocess.run(['tar', 'czf', self.zip_filename, self.working_filename])
         os.remove(self.working_filename)
         return self.zip_filename
     
