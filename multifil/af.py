@@ -347,7 +347,7 @@ class ThinFilament(object):
         self.index = index
         self.address = ('thin_fil', self.index)
         # TODO The creation of the monomer positions and angles should be refactored into a static function of similar.
-        # Figure out axial positions
+        # Figure out axial positions, see Howard pg 125
         mono_per_poly = 26 # actin monomers in an actin polymer unit
         poly_per_fil = 15 # actin polymers in a thin filament
         polymer_base_length = 72.0 # nm per polymer unit length
@@ -527,7 +527,7 @@ class ThinFilament(object):
         return np.add(thin, binding_sites)
     
     def settle(self):
-        """Reduce the total axial force on the system by moving the crowns"""
+        """Reduce the total axial force on the system by moving the sites"""
         # Total axial force on each point
         forces = self.axialforce()
         # Individual displacements needed to balance force

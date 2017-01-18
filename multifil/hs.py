@@ -38,6 +38,8 @@ class hs(object):
                     * "lattice_spacing"
                     * "z_line"
                     * "actin_permissiveness"
+            starts: starting polymer/orientation for thin/thick filaments in
+                form ((rand(0,25), ...), (rand(0,3), ...))
         Returns:
             None
         
