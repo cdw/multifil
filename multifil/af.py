@@ -101,7 +101,7 @@ class BindingSite(object):
             (f_y, f_z): the radial force vector of this binding site
         """
         if self.bound_to is None:
-            return 0.0
+            return np.array([0.0, 0.0])
         force_mag = -self.bound_to.radialforce() # Equal but opposite
         return np.multiply(force_mag, self.orientation)
         """Create link to the relevant thick filament face when known"""
