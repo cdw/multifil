@@ -104,8 +104,6 @@ class BindingSite(object):
             return np.array([0.0, 0.0])
         force_mag = -self.bound_to.radialforce() # Equal but opposite
         return np.multiply(force_mag, self.orientation)
-        """Create link to the relevant thick filament face when known"""
-        self.thick_face = thick_face
     
     def bind_to(self, crossbridge):
         """Link this binding site to a cross-bridge object"""
