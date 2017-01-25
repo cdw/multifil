@@ -214,7 +214,7 @@ class ThinFace(object):
                             face_locs[close_index-1] - axial_location))
         else:
             return self.binding_sites[close_index-1] # If so, return end
-        if dists[0] < dists[1] or len(self.binding_sites) >= close_index + 1:
+        if dists[0] < dists[1]:
             return self.binding_sites[close_index]
         else:
             return self.binding_sites[close_index + 1]
