@@ -101,11 +101,9 @@ class BindingSite(object):
             (f_y, f_z): the radial force vector of this binding site
         """
         if self.bound_to is None:
-            return 0.0
+            return np.array([0.0, 0.0])
         force_mag = -self.bound_to.radialforce() # Equal but opposite
         return np.multiply(force_mag, self.orientation)
-        """Create link to the relevant thick filament face when known"""
-        self.thick_face = thick_face
     
     def bind_to(self, crossbridge):
         """Link this binding site to a cross-bridge object"""
@@ -216,7 +214,7 @@ class ThinFace(object):
                             face_locs[close_index-1] - axial_location))
         else:
             return self.binding_sites[close_index-1] # If so, return end
-        if dists[0] < dists[1] or len(self.binding_sites) >= close_index + 1:
+        if dists[0] < dists[1]:
             return self.binding_sites[close_index]
         else:
             return self.binding_sites[close_index + 1]
@@ -315,7 +313,6 @@ class ThinFilament(object):
             parent_lattice: the calling half-sarcomere instance
             index: which thin filament this is (0-7)
             face_orientations: list of faces' numerical orientation (0-5)
-            z_line: the location of the end of the thin filament (1250 nm)
             start: which of the 26 actin monomers in an actin
                 repeating unit this filament begins with (defaults
                 to the first)
@@ -348,7 +345,7 @@ class ThinFilament(object):
         self.index = index
         self.address = ('thin_fil', self.index)
         # TODO The creation of the monomer positions and angles should be refactored into a static function of similar.
-        # Figure out axial positions
+        # Figure out axial positions, see Howard pg 125
         mono_per_poly = 26 # actin monomers in an actin polymer unit
         poly_per_fil = 15 # actin polymers in a thin filament
         polymer_base_length = 72.0 # nm per polymer unit length
@@ -528,7 +525,7 @@ class ThinFilament(object):
         return np.add(thin, binding_sites)
     
     def settle(self):
-        """Reduce the total axial force on the system by moving the crowns"""
+        """Reduce the total axial force on the system by moving the sites"""
         # Total axial force on each point
         forces = self.axialforce()
         # Individual displacements needed to balance force

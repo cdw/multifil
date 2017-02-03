@@ -17,6 +17,7 @@ Created by Dave Williams on 2016-07-02
 import sys
 import os
 import shutil
+import subprocess
 import time
 import uuid
 import ujson as json
@@ -58,8 +59,8 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
     lattice_spacing: float or tuple, optional
         Same as for z-line. The tuple format is currently: (rest_ls, rest_zln)
     actin_permissiveness: float or tuple, optional
-        Same as for z-line. The tuple format is currently: (amp, period, on, 
-        duration, sharp)
+        Same as for z-line. The tuple format is currently: (cycle_period, phase, 
+        stim_duration, influx_time, half_life)
     comment: string, optional
         Space for comment on the purpose or other characteristics of the run
     write: bool, optional
@@ -181,8 +182,13 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
         run_step_number = timestep_number #for ease of reading
         cycle_step_number = int(cycle_period/timestep_length)
         cycle_time_trace = np.arange(0, cycle_period, timestep_length)
-        steps_before_stim = np.argwhere(
-            cycle_time_trace>=(cycle_period*phase))[0][0]
+        try:
+            steps_before_stim = np.argwhere(
+                cycle_time_trace>=(cycle_period*(phase%1)))[0][0]
+        except IndexError:
+            assert 0 == len(np.argwhere(
+                cycle_time_trace>=(cycle_period*(phase%1))))
+            steps_before_stim = 0 #b/c phase was 0.999 or similar
         stim_step_number = int(stim_duration/timestep_length)
         no_stim_step_number = cycle_step_number - stim_step_number
         # Things we need to know for smoothing
@@ -431,9 +437,8 @@ class sarc_file(object):
         """Close the current sarcomere file for proper JSON formatting"""
         self.working_file.write('\n]')
         self.working_file.close()
-        self.zip_filename = self.working_filename[:-4]+'zip'
-        with zipfile.ZipFile(self.zip_filename, 'w', zipfile.ZIP_LZMA) as zip:
-            zip.write(self.working_filename)
+        self.zip_filename = self.working_filename[:-4]+'tar.gz'
+        cp = subprocess.run(['tar', 'czf', self.zip_filename, self.working_filename])
         os.remove(self.working_filename)
         return self.zip_filename
     

@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='multifil',
       version='0.2',
@@ -7,6 +7,6 @@ setup(name='multifil',
       author='C David Williams',
       author_email='cdave@uw.edu',
       license='MIT',
-      packages=['multifil'],
+      packages=find_packages(),
       install_requires=['numpy', 'boto']
      )

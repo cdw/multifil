@@ -26,13 +26,13 @@ class Spring(object):
         # Normalize: a factor used to normalize the PDF of the segment values
         self.normalize = sqrt(2*pi*k_t/self.k_w)
         self.stand_dev = sqrt(k_t/self.k_w) # of segment values
-    
+
     def to_dict(self):
         """Create a JSON compatible representation of the spring """
         return self.__dict__.copy()
-    
+
     def from_dict(self, sd):
-        """ Load values from a spring dict. Values read in correspond 
+        """ Load values from a spring dict. Values read in correspond
         to the current output documented in to_dict.
         """
         self.r_w = sd['r_w']
@@ -41,13 +41,13 @@ class Spring(object):
         self.k_s = sd['k_s']
         self.normalize = sd['normalize']
         self.stand_dev = sd['stand_dev']
-    
+
     def rest(self, state):
-        """Return the rest value of the spring in state state 
-        
+        """Return the rest value of the spring in state state
+
         Takes:
             state: the state of the spring, ['free'|'loose'|'tight']
-        Returns:    
+        Returns:
             length/angle: rest length/angle of the spring in the given state
         """
         if state in ("free", "loose"):
@@ -56,13 +56,13 @@ class Spring(object):
             return self.r_s
         else:
             warnings.warn("Improper value for spring state")
-    
+
     def constant(self, state):
-        """Return the spring constant of the spring in state state 
-        
+        """Return the spring constant of the spring in state state
+
         Takes:
             state: the state of the spring, ['free'|'loose'|'tight']
-        Returns:    
+        Returns:
             spring constant: for the spring in the given state
         """
         if state in ("free", "loose"):
@@ -71,10 +71,10 @@ class Spring(object):
             return self.k_s
         else:
             warnings.warn("Improper value for spring state")
-    
+
     def energy(self, spring_val, state):
-        """Given a current length/angle, return stored energy 
-        
+        """Given a current length/angle, return stored energy
+
         Takes:
             spring_val: a spring length or angle
             state: a spring state, ['free'|'loose'|'tight']
@@ -87,17 +87,17 @@ class Spring(object):
             return (0.5 * self.k_s * m.pow((spring_val-self.r_s), 2))
         else:
             warnings.warn("Improper value for spring state")
-    
+
     def bop(self):
         """Bop for a new value, given an exponential energy dist
-        
+
         A longer explanation is in singlexb/Crossbridge.py
         Takes:
             nothing: assumes the spring to be in the unbound state
-        Returns:    
+        Returns:
             spring_value: the length or angle of the spring after diffusion"""
         return (random.normal(self.r_w, self.stand_dev))
-    
+
 
 class SingleSpringHead(object):
     """A single-spring myosin head, as in days of yore"""
@@ -107,7 +107,7 @@ class SingleSpringHead(object):
         self.g = Spring({
             'rest_weak': 5,
             'rest_strong': 0,
-            'konstant_weak': 5 / 3.976,          
+            'konstant_weak': 5 / 3.976,
             'konstant_strong': 5 / 3.976})
         # Free energy calculation helpers
         g_atp = 13 # In units of RT
@@ -115,14 +115,14 @@ class SingleSpringHead(object):
         adp = 30 * 10**-6
         phos  = 3  * 10**-3
         self.deltaG = abs(-g_atp - log(atp / (adp * phos)))
-        self.alpha = 0.28 
-        self.eta = 0.68 
+        self.alpha = 0.28
+        self.eta = 0.68
         # The time-step, master of all time
         self.timestep = 1 # ms
-    
+
     def transition(self, bs):
         """Transition to a new state (or not)
-        
+
         Takes:
             bs: relative Crown to Actin distance (x,y)
         Returns:
@@ -132,77 +132,77 @@ class SingleSpringHead(object):
         check = random.rand()
         ## Check for transitions depending on the current state
         if self.state == "free":
-            if self._r12(bs) > check: 
+            if self._r12(bs) > check:
                 self.state = "loose"
                 return '12'
         elif self.state == "loose":
-            if self._r23(bs) > check: 
+            if self._r23(bs) > check:
                 self.state = "tight"
                 return '23'
-            elif self._r21(bs) > check: 
+            elif (1-self._r21(bs)) < check:
                 self.state = "free"
                 return '21'
         elif self.state == "tight":
-            if self._r31(bs) > check: 
+            if self._r31(bs) > check:
                 self.state = "free"
                 return '31'
-            elif self._r32(bs) > check: 
+            elif (1-self._r32(bs)) < check:
                 self.state = "loose"
                 return '32'
-        # Got this far? Than no transition occurred! 
+        # Got this far? Than no transition occurred!
         return None
-    
+
     def axialforce(self, tip_location):
         """Find the axial force a Head generates at a given location
-        
+
         Takes:
             tip_location: relative Crown to Actin distance (x,y)
         Returns:
             f_x: the axial force generated by the Head
         """
-        ## Get the Head length 
+        ## Get the Head length
         g_len = tip_location[0]
         ## Write all needed values to local variables
         g_s = self.g.rest(self.state)
         g_k = self.g.constant(self.state)
         ## Find and return force
-        f_x = g_k * (g_len - g_s) 
+        f_x = g_k * (g_len - g_s)
         return f_x
-    
+
     def radialforce(self, tip_location):
         """Find the radial force a Head generates at a given location
-        
+
         Takes:
             tip_location: relative Crown to Actin distance (x,y)
         Returns:
             f_y: the radial force generated by the Head
         """
         return 0.0
-    
+
     def energy(self, tip_location, state=None):
         """Return the energy in the xb with the given parameters
-        
+
         Takes:
             tip_location: relative Crown to Actin distance (x,y)
             state: kinetic state of the cross-bridge, ['free'|'loose'|'tight']
         Returns:
             xb_energy: the energy stored in the cross-bridge"""
-        if state is None: 
+        if state is None:
             state = self.state
         return self.g.energy(tip_location[0], state)
-    
+
     def get_numeric_state(self):
         """Return the numeric state (0, 1, or 2) of the head"""
         lookup_state = {"free":0, "loose":1, "tight":2}
         return lookup_state[self.state]
-    
+
     def _set_timestep(self, timestep):
         """Set the length of time step used to calculate transitions"""
         self.timestep = timestep
-    
+
     def _r12(self, bs):
         """Binding rate, based on the distance from the Head tip to a Actin
-        
+
         Takes:
             bs: relative Crown to Actin distance (x,y)
         Returns:
@@ -213,19 +213,19 @@ class SingleSpringHead(object):
         xb_0 = self.g.rest("free")
         A = 2000  # From Tanner, 2008 Pg 1209
         ## Calculate the binding probability
-        rate = (A * sqrt(k_xb / (2 * pi)) * 
+        rate = (A * sqrt(k_xb / (2 * pi)) *
                 m.exp(-.5 * k_xb * (bs[0] - xb_0)**2)) * self.timestep
         return float(rate)
-    
+
     def _r21(self, bs):
         """The reverse transition, from loosely bound to unbound
-        
+
         Takes:
             bs: relative Crown to Actin distance (x,y)
         Returns:
             rate: probability of transition occurring this timestep
         """
-        ## The rate depends on the states' free energies 
+        ## The rate depends on the states' free energies
         g_1 = self._free_energy(bs, "free")
         g_2 = self._free_energy(bs, "loose")
         ## Rate, as in pg 1209 of Tanner et al, 2007
@@ -234,10 +234,10 @@ class SingleSpringHead(object):
         except ZeroDivisionError:
             rate = 1
         return float(rate)
-    
+
     def _r23(self, bs):
         """Probability of becoming tightly bound if loosely bound
-        
+
         Takes:
             bs: relative Crown to Actin distance (x,y)
         Returns:
@@ -253,10 +253,10 @@ class SingleSpringHead(object):
         rate = (B / sqrt(k_xb) * (1 - m.tanh(C * sqrt(k_xb) *
                 (bs[0] - xb_0))) + D) * self.timestep
         return float(rate)
-    
+
     def _r32(self, bs):
         """The reverse transition, from tightly to loosely bound
-        
+
         Takes:
             bs: relative Crown to Actin distance (x,y)
         Returns:
@@ -270,10 +270,10 @@ class SingleSpringHead(object):
         except ZeroDivisionError:
             rate = 1
         return float(rate)
-    
+
     def _r31(self, bs):
         """Probability of unbinding if tightly bound
-        
+
         Takes:
             bs: relative Crown to Actin distance (x,y)
         Returns:
@@ -285,13 +285,13 @@ class SingleSpringHead(object):
         N = 40
         P = 20
         ## Based on the energy in the tight state
-        rate = (sqrt(k_xb) * (sqrt(M * (bs[0]-4.76)**2) - 
+        rate = (sqrt(k_xb) * (sqrt(M * (bs[0]-4.76)**2) -
                 N * (bs[0]-4.76)) + P) * self.timestep
         return float(rate)
-    
+
     def _free_energy(self, tip_location, state):
         """Free energy of the Head
-        
+
         Takes:
             tip_location: relative Crown to Actin distance (x,y)
             state: kinetic state of the cross-bridge, ['free'|'loose'|'tight']
@@ -314,20 +314,25 @@ class SingleSpringHead(object):
 class Head(object):
     """Head implements a single myosin head"""
     def __init__(self):
-        """Create the springs that make up the head and set energy values"""
+        """Create the springs that make up the head and set energy values
+        Values are choosen for consistancy with single spring rest lengths
+        and rest lattice spacings. More documentaion in the single spring
+        code. All numerical values referenced are discussed in single
+        crossbridge PLOS paper.
+        """
         # Remember thine kinetic state
         self.state = "free"
         # Create the springs which make up the head
-        self.c = Spring({
-            'rest_weak': radians(47.16), 
-            'rest_strong': radians(73.20), 
-            'konstant_weak': 40,            
-            'konstant_strong': 40})        
-        self.g = Spring({
-            'rest_weak': 19.93, 
+        self.c = Spring({   # the converter domain
+            'rest_weak': radians(47.16),
+            'rest_strong': radians(73.20),
+            'konstant_weak': 40,
+            'konstant_strong': 40})
+        self.g = Spring({   # the globular domain
+            'rest_weak': 19.93,
             'rest_strong': 16.47,
-            'konstant_weak': 2,          
-            'konstant_strong': 2})       
+            'konstant_weak': 2,
+            'konstant_strong': 2})
         # Free energy calculation helpers
         g_atp = 13 # In units of RT
         atp = 5  * 10**-3
@@ -338,10 +343,10 @@ class Head(object):
         self.etaDG = 0.68 * -deltaG
         # The time-step, master of all time
         self.timestep = 1 # ms
-    
+
     def transition(self, bs, ap):
         """Transition to a new state (or not)
-        
+
         Takes:
             bs: relative Crown to Actin distance (x,y)
             ap: Actin binding permissiveness, from 0 to 1
@@ -352,29 +357,29 @@ class Head(object):
         check = random.rand()
         ## Check for transitions depending on the current state
         if self.state == "free":
-            if self._bind(bs, ap) > check: 
+            if self._prob(self._bind(bs))*ap > check:
                 self.state = "loose"
                 return '12'
         elif self.state == "loose":
-            if self._r23(bs) > check: 
+            if self._prob(self._r23(bs)) > check:
                 self.state = "tight"
                 return '23'
-            elif self._r21(bs, ap) > check: 
+            elif (1 - self._prob(self._r21(bs))) < check:
                 self.state = "free"
                 return '21'
         elif self.state == "tight":
-            if self._r31(bs) > check: 
+            if self._prob(self._r31(bs)) > check:
                 self.state = "free"
                 return '31'
-            elif self._r32(bs) > check: 
+            elif (1 - self._prob(self._r32(bs))) < check:
                 self.state = "loose"
                 return '32'
-        # Got this far? Than no transition occurred! 
+        # Got this far? Than no transition occurred!
         return None
-    
+
     def axialforce(self, tip_location):
         """Find the axial force a Head generates at a given location
-        
+
         Takes:
             tip_location: relative Crown to Actin distance (x,y)
         Returns:
@@ -388,13 +393,13 @@ class Head(object):
         c_k = self.c.constant(self.state)
         g_k = self.g.constant(self.state)
         ## Find and return force
-        f_x = (g_k * (g_len - g_s) * m.cos(c_ang) + 
+        f_x = (g_k * (g_len - g_s) * m.cos(c_ang) +
                1/g_len * c_k * (c_ang - c_s) * m.sin(c_ang))
         return f_x
-     
+
     def radialforce(self, tip_location):
         """Find the radial force a Head generates at a given location
-        
+
         Takes:
             tip_location: relative Crown to Actin distance (x,y)
         Returns:
@@ -408,46 +413,59 @@ class Head(object):
         c_k = self.c.constant(self.state)
         g_k = self.g.constant(self.state)
         ## Find and return force
-        f_y = (g_k * (g_len - g_s) * m.sin(c_ang) + 
+        f_y = (g_k * (g_len - g_s) * m.sin(c_ang) +
                1/g_len * c_k * (c_ang - c_s) * m.cos(c_ang))
         return f_y
-    
+
     def energy(self, tip_location, state=None):
         """Return the energy in the xb with the given parameters
-        
+
         Takes:
             tip_location: relative Crown to Actin distance (x,y)
             state: kinetic state of the cross-bridge, ['free'|'loose'|'tight']
         Returns:
             xb_energy: the energy stored in the cross-bridge"""
-        if state == None: 
+        if state == None:
             state = self.state
         (ang, dist) = self._seg_values(tip_location)
         xb_energy = self.c.energy(ang, state) + self.g.energy(dist, state)
         return xb_energy
-    
+
     def get_numeric_state(self):
         """Return the numeric state (0, 1, or 2) of the head"""
         lookup_state = {"free":0, "loose":1, "tight":2}
         return lookup_state[self.state]
-    
-    @property 
+
+    @property
     def timestep(self):
         return self._timestep
-    
+
     @timestep.setter
     def timestep(self, timestep):
         """Set the length of time step used to calculate transitions"""
         self._timestep = timestep
-    
-    def _bind(self, bs, ap):
+
+    def _prob(self, rate):
+        """Convert a rate to a probability, based on the current timestep
+        length and the assumption that the rate is for a Poisson process.
+        We are asking, what is the probability that at least one Poisson
+        distributed value would occur during the timestep.
+
+        Takes:
+            rate: a per ms rate to convert to probability
+        Returns:
+            probability: the probability the event occurs during a timestep
+                of length determined by self.timestep
+        """
+        return 1 - m.exp(-rate*self.timestep)
+
+    def _bind(self, bs):
         """Bind (or don't) based on the distance from the Head tip to a Actin
-        
+
         Takes:
             bs: relative Crown to Actin distance (x,y)
-            ap: Actin binding permissiveness, from 0 to 1
         Returns:
-            probability: chance of binding occurring
+            probability: chance of binding occurring during a timestep
         """
         ## Flag indicates successful diffusion
         bop_right = False
@@ -461,70 +479,66 @@ class Head(object):
             bop_right = bs[1] >= tip[1]
         ## Find the distance to the binding site
         distance = m.hypot(bs[0]-tip[0], bs[1]-tip[1])
-        ## The binding prob is dependent on the exp of the dist
-        # Prob = \tau * \exp^{-dist^2} * timestep 
-        probability = 72 * m.exp(-distance**2) * self.timestep
-        ## The binding prob is conditioned by the actin permissiveness
-        probability *= ap
-        ## Return the probability
-        return probability
-    
-    def _r21(self, bs, ap):
+
+        ## The binding rate is dependent on the exp of the dist
+        # Rate = \tau * \exp^{-dist^2}
+        rate = 72 * m.exp(-distance**2)
+        ## Return the rate
+        return rate
+
+    def _r21(self, bs):
         """The reverse transition, from loosely bound to unbound
-        
-        This depends on the rate r12, the binding rate, which is given
-        in a stochastic manner. Thus _r21 is returning not the rate of 
-        going from loosely bound to tightly bound, but the change that 
-        occurs in one particular timestep, the stochastic rate.
+
+        This depends on the prob r12, the binding prob, which is given
+        in a stochastic manner. Thus _p21 is returning not the prob of
+        going from loosely bound to tightly bound, but the change that
+        occurs in one particular timestep, the stochastic probability.
         Takes:
             bs: relative Crown to Actin distance (x,y)
             ap: Actin binding permissiveness, from 0 to 1
         Returns:
-            rate: probability of transition occurring this timestep
+            prob: probability of transition
         """
-        ## The rate depends on the states' free energies 
+        ## The rate depends on the states' free energies
         unbound_free_energy = self._free_energy(bs, "free")
         loose_free_energy = self._free_energy(bs, "loose")
         ## Rate, as in pg 1209 of Tanner et al, 2007
         ## With added reduced-detachment factor, increases dwell time
         try:
-            rate = self._bind(bs, ap) / m.exp(
+            rate = self._bind(bs) / m.exp(
                 unbound_free_energy - loose_free_energy)
         except ZeroDivisionError:
+
             rate = 1
         return float(rate)
-    
+
     def _r23(self, bs):
-        """Probability of becoming tightly bound if loosely bound
-        
+        """Rate of becoming tightly bound if loosely bound
+
         Takes:
             bs: relative Crown to Actin distance (x,y)
         Returns:
-            rate: probability of becoming tightly bound
+            rate: per ms rate of becoming tightly bound
         """
         ## The transition rate depends on state energies
         loose_energy = self.energy(bs, "loose")
         tight_energy = self.energy(bs, "tight")
-        ## Rate taken from single cross-bridge work
-        #rate = (0.1 * (1 + m.tanh(4 + 0.4 * (loose_energy - tight_energy)))
-        #        +.001) * self.timestep
-        # Concerned that the below is higher rates than originally proposed,
-        # probably something that I previously documented.
-        #rate = 10*(.1 * (1 + m.tanh(.4 * (loose_energy - tight_energy) + 4)) \
-        #        +.001) * self.timestep
-        rate = 10*(.1 * (1 + m.tanh(.4 * (loose_energy - tight_energy) + 4)) \
-                +.001) * self.timestep
+        ## Powerstroke rate, per ms
+        rate = (0.6 * # reduce overall rate
+                (1 +  # shift rate up to avoid negative rate
+                m.tanh(6 + # move center of transition to right
+                       0.2 * (loose_energy - tight_energy))))
         return float(rate)
-    
+
     def _r32(self, bs):
         """The reverse transition, from tightly to loosely bound
-        
+
         Takes:
             bs: relative Crown to Actin distance (x,y)
         Returns:
-            rate: probability of becoming loosely bound
+            rate: per ms rate of transition
         """
-        ## Governed as in self_r21
+        ## Governed as in self_p21
         loose_free_energy = self._free_energy(bs, "loose")
         tight_free_energy = self._free_energy(bs, "tight")
         try:
@@ -532,25 +546,24 @@ class Head(object):
         except ZeroDivisionError:
             rate = 1
         return float(rate)
-    
+
     def _r31(self, bs):
-        """Probability of unbinding if tightly bound
-        
+        """Per ms rate of unbinding if tightly bound
+
         Takes:
             bs: relative Crown to Actin distance (x,y)
         Returns
-            rate: probability of detaching from the binding site
+            rate: per ms rate of detaching from the binding site
         """
         ## Based on the energy in the tight state
         loose_energy = self.energy(bs, "loose")
         tight_energy = self.energy(bs, "tight")
-        rate =  (m.sqrt(0.0015 * abs(loose_energy-tight_energy)) +
-                 0.015*loose_energy - 0.06) * self.timestep
+        rate = m.sqrt(0.01*tight_energy) + 0.02
         return float(rate)
-    
+
     def _free_energy(self, tip_location, state):
         """Free energy of the Head
-        
+
         Takes:
             tip_location: relative Crown to Actin distance (x,y)
             state: kinetic state of the cross-bridge, ['free'|'loose'|'tight']
@@ -563,12 +576,12 @@ class Head(object):
             return self.alphaDG + self.energy(tip_location, state)
         elif state == "tight":
             return self.etaDG + self.energy(tip_location, state)
-    
+
     @staticmethod
     def _seg_values(tip_location):
         """Return the length and angle to the Head tip
-        
-        Takes: 
+
+        Takes:
             tip_location: relative Crown to Actin distance (x,y)
         Returns:
             (c_ang, g_len): the angle and length of the Head's springs
@@ -582,7 +595,7 @@ class Crossbridge(Head):
     """A cross-bridge, including status of links to actin sites"""
     def __init__(self, index, parent_face, thin_face):
         """Set up the cross-bridge
-    
+
         Parameters:
             index: the cross-bridge's index on the parent face
             parent_face: the associated thick filament face
@@ -590,30 +603,30 @@ class Crossbridge(Head):
         """
         # Do that super() voodoo that instantiates the parent Head
         super(Crossbridge, self).__init__()
-        # What is your name, where do you sit on the parent face? 
+        # What is your name, where do you sit on the parent face?
         self.index = index
         # What log are you a bump upon?
         self.parent_face = parent_face
         # Remember who thou art squaring off against
         self.thin_face = thin_face
         # How can I ever find you?
-        self.address = ('xb', self.parent_face.parent_filament.index, 
+        self.address = ('xb', self.parent_face.parent_filament.index,
                         self.parent_face.index, self.index)
         # Remember if thou art bound unto an actin
         self.bound_to = None # None if unbound, BindingSite object otherwise
-    
+
     def __str__(self):
         """String representation of the cross-bridge"""
         out = '__XB_%02d__State_%s__Forces_%d_%d__'%(
             self.index, self.state,
             self.axialforce(), self.radialforce())
         return out
-    
+
     def to_dict(self):
         """Create a JSON compatible representation of the crown
-        
+
         Example usage: json.dumps(crown.to_dict(), indent=1)
-        
+
         Current output includes:
             address: largest to most local, indices for finding this
             state: the free, loose, strong state of binding
@@ -630,15 +643,15 @@ class Crossbridge(Head):
             xbd['bound_to'] = xbd['bound_to'].address
         xbd['thin_face'] = xbd['thin_face'].address
         return xbd
-       
+
     def from_dict(self, xbd):
-        """ Load values from a crossbridge dict. Values read in correspond 
+        """ Load values from a crossbridge dict. Values read in correspond
         to the current output documented in to_dict.
         """
         # Check for index mismatch
         read, current = tuple(xbd['address']), self.address
         assert read==current, "index mismatch at %s/%s"%(read, current)
-        # Local keys 
+        # Local keys
         self.state = xbd['state']
         self.etaDG = xbd['etaDG']
         self.alphaDG = xbd['alphaDG']
@@ -650,10 +663,10 @@ class Crossbridge(Head):
         else:
             self.bound_to = self.parent_face.parent_filament.parent_lattice.\
                 resolve_address(xbd['bound_to'])
-    
+
     def transition(self):
         """Gather the needed information and try a transition
-        
+
         Parameters:
             None
         Returns:
@@ -669,7 +682,7 @@ class Crossbridge(Head):
             actin_site = self.thin_face.nearest(xb_axial_loc)
             actin_axial_loc = actin_site.get_axial_location()
             actin_state = actin_site.permissiveness
-            # Find the axial separation 
+            # Find the axial separation
             axial_sep = actin_axial_loc - xb_axial_loc
             # Combine the two distances
             distance_to_site = (axial_sep, lattice_spacing)
@@ -680,7 +693,7 @@ class Crossbridge(Head):
             if trans == '12':
                 self.bound_to = actin_site
                 actin_site.bind_to(self)
-            else: 
+            else:
                 assert (trans is None), 'Bound state mismatch'
         else:
             # Get the distance to the actin site
@@ -688,7 +701,7 @@ class Crossbridge(Head):
             actin_state = self.bound_to.permissiveness
             # Allow the myosin head to take it from here
             trans = super(Crossbridge, self).transition(distance_to_site,
-                                                        actin_state) 
+                                                        actin_state)
             # Process changes to the bound state
             if trans in set(('21', '31')):
                 self.bound_to.bind_to(None)
@@ -696,10 +709,10 @@ class Crossbridge(Head):
             else:
                 assert (trans in set(('23', '32', None))) , 'State mismatch'
         return trans
-    
+
     def axialforce(self, base_axial_loc=None, tip_axial_loc = None):
         """Gather needed information and return the axial force
-    
+
         Parameters:
             base_axial_location: location of the crown (optional)
             tip_axial_loc: location of an attached actin node (optional)
@@ -713,10 +726,10 @@ class Crossbridge(Head):
         distance = self._dist_to_bound_actin(base_axial_loc, tip_axial_loc)
         # Allow the myosin head to take it from here
         return super(Crossbridge, self).axialforce(distance)
-    
+
     def radialforce(self):
         """Gather needed information and return the radial force
-    
+
         Parameters:
             None
         Returns:
@@ -729,27 +742,27 @@ class Crossbridge(Head):
         distance_to_site = self._dist_to_bound_actin()
         # Allow the myosin head to take it from here
         return super(Crossbridge, self).radialforce(distance_to_site)
-    
+
     def _get_axial_location(self):
         """Find the axial location of the thick filament attachment point
-        
+
         Parameters:
             None
         Returns:
             axial: the axial location of the cross-bridge base
         """
-        axial = self.parent_face.get_axial_location(self.index) 
+        axial = self.parent_face.get_axial_location(self.index)
         return axial
-    
+
     def _dist_to_bound_actin(self, xb_axial_loc=None, tip_axial_loc=None):
-        """Find the (x,y) distance to the bound actin 
-        
+
+        """Find the (x,y) distance to the bound actin
         This is the distance format used by the myosin head.
         Parameters:
             xb_axial_loc: current axial location of the crown (optional)
             tip_axial_loc: location of an attached actin node (optional)
         Returns:
-            (x,y): the axial distance between the cross-bridge base and 
+            (x,y): the axial distance between the cross-bridge base and
                    the actin site (x), and the lattice spacing (y)
         """
         # Are you really bound?
@@ -764,7 +777,7 @@ class Crossbridge(Head):
             tip_axial_loc = self.bound_to.get_axial_location()
         # Combine the two distances
         return (tip_axial_loc - xb_axial_loc, lattice_spacing)
-    
+
     def _get_lattice_spacing(self):
         """Ask our superiors for lattice spacing data"""
         return self.parent_face.get_lattice_spacing()

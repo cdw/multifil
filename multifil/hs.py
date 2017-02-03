@@ -38,6 +38,8 @@ class hs(object):
                     * "lattice_spacing"
                     * "z_line"
                     * "actin_permissiveness"
+            starts: starting polymer/orientation for thin/thick filaments in
+                form ((rand(0,25), ...), (rand(0,3), ...))
         Returns:
             None
         
@@ -322,23 +324,6 @@ class hs(object):
         """The sum of the thick filaments' radial forces, as a (y,z) vector"""
         return np.sum([t.radial_force_of_filament() for t in self.thick], 0)
     
-    def balance(self):
-        """Manage the movement of the axial locations to minimize energy
-        
-        Parameters:
-            None
-        Returns:
-            dist: the distances moved by each node
-        """
-        # Create the terrible giant location list
-        all_axial_locs = self.flatten_locations()
-        # Balance forces
-        soln_locs = opt.fsolve(self._all_forces_for_balance, all_axial_locs)
-        dist = all_axial_locs - soln_locs
-        # Write giant location list back to filaments
-        self.reload_locations(soln_locs)
-        return dist
-    
     def _single_settle(self):
         """Settle down now, just a little bit"""
         thick = [thick.settle() for thick in self.thick]
@@ -356,51 +341,6 @@ class hs(object):
         converge = self._single_settle()
         while converge>converge_limit:
             converge = self._single_settle()
-    
-    def _all_forces_for_balance(self, locs):
-        """Give axial forces at all points, given all axial locations
-        
-        Parameters:
-            locs: Axial locations, given as a large list, containing the 
-                locations of every crown followed by the location of every 
-                actin node. This looks something like: 
-                    [thick_0_crown_0, thick_0_crown_1, ..., thick_0_crown_60, 
-                    ..., thick_3_crown_60, thin_0_node_0, ..., thin_0_node_89, 
-                    ..., thin_7_node_89]
-        Returns:
-            forces: axial force at each of the locations given on entry
-        """
-        # I think that we need to load the locations into the hs
-        self.reload_locations(locs)
-        # Get forces
-        forces = []
-        for thick in self.thick:
-            forces.append(thick.axialforce())
-        for thin in self.thin:
-            forces.append(thin.axialforce())
-        return np.hstack(forces)
-    
-    def flatten_locations(self):
-        """Return a one dimensional version of the current locations"""
-        all_axial_locs = []
-        [all_axial_locs.append(thick.axial) for thick in self.thick]
-        [all_axial_locs.append(thin.axial) for thin in self.thin]
-        return np.hstack(all_axial_locs)
-    
-    def reload_locations(self, f_axial):
-        """Pop the flat axial locations back into the half-sarcomere
-        
-        Parameters:
-            f_axial: all axial locations, as a flat list
-        Returns:
-                nothing
-        """
-        for thick in self.thick:
-            thick.axial = f_axial[0:thick.number_of_crowns]
-            f_axial = np.delete(f_axial, np.s_[0:thick.number_of_crowns])
-        for thin in self.thin:
-            thin.axial = f_axial[0:thin.number_of_nodes]
-            f_axial = np.delete(f_axial, np.s_[0:thin.number_of_nodes])
     
     def _get_residual(self):
         """Get the residual force at every point in the half-sarcomere"""
