@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 """
-sqs_control_userdata_script.py - control an aws instance from a sqs queue
+userdata_script.py - control an aws instance from a sqs queue
 
 Run this guy on startup as a userdata script and he will connect to 
 s3 to download code to a directory, and run commands in it that are 
@@ -107,5 +107,3 @@ except Exception as e:
     log_it("Going no further, shutting down now")
 finally:
     os.system('shutdown now -h')
-    
-    
