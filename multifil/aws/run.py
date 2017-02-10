@@ -74,7 +74,7 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
     
     Examples
     --------
-    >>> emit_run('./', None, .1, 100, write=False) 
+    >>> emit_meta('./', None, .1, 100, write=False) 
     {'actin_permissiveness': None,
     ...  'actin_permissiveness_func': None,
     ...  'comment': None,
@@ -88,7 +88,7 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
     ...  'z_line': None,
     ...  'z_line_func': None}
     ...
-    >>> emit_run('./eggs', 'EGGS', 5, 10, (1250, 25, 25), (16, 1250), .75, comment='Just a test', write=False)  #doctest: +ELLIPSIS
+    >>> emit_meta('./eggs', 'EGGS', 5, 10, (1250, 25, 25), (16, 1250), .75, comment='Just a test', write=False)  #doctest: +ELLIPSIS
     {'actin_permissiveness': 0.75,
     ... 'actin_permissiveness_func': None,
     ... 'comment': 'Just a test',
