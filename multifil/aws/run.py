@@ -31,7 +31,7 @@ from .. import hs
 ## Configure a run via a saved meta file
 def emit_meta(path_local, path_s3, timestep_length, timestep_number, 
               z_line=None, lattice_spacing=None, actin_permissiveness=None,
-              comment = None, write = True):
+              comment = None, write = True, name=None):
     """Produce a structured JSON file that will be consumed to create a run
     
     emit_meta is intended as the counterpoint to the manage class and 
@@ -111,7 +111,8 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
     """
     rund = {}
     ## Simple run metadata
-    name = str(uuid.uuid1())
+    if name is None:
+        name = str(uuid.uuid1())
     rund['name'] = name
     rund['comment'] = comment
     rund['path_local'] = path_local
