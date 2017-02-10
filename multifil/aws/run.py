@@ -417,8 +417,11 @@ class sarc_file(object):
         """Close the current sarcomere file for proper JSON formatting"""
         self.working_file.write('\n]')
         self.working_file.close()
-        self.zip_filename = self.working_filename[:-4]+'tar.gz'
-        cp = subprocess.run(['tar', 'czf', self.zip_filename, self.working_filename])
+        time.sleep(1)
+        self.zip_filename = self.meta['name']+'.sarc.tar.gz'
+        cp = subprocess.run(['tar', 'czf', self.zip_filename, 
+                             '-C', self.working_directory, 
+                             self.working_filename])
         os.remove(self.working_filename)
         return self.zip_filename
     
