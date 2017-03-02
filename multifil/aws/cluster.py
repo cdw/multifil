@@ -29,9 +29,10 @@ KEY_FILE = os.path.expanduser('~/.aws/keys/id_aws')
 KEY_NAME = 'id_aws' 
 SECURITY_GROUP_ID = 'sg-2a31b650'
 SUBNET_IDS = {'us-east-1a':'subnet-7653873f', # map an availability zone
-              'us-east-1e':'subnet-a5957299', # to the right VPC
+              'us-east-1b':'subnet-39a5bf61', # to the right VPC
+              'us-east-1c':'subnet-018b1b64',
               'us-east-1d':'subnet-00ff1b2d', 
-              'us-east-1b':'subnet-39a5bf61'} 
+              'us-east-1e':'subnet-a5957299'} 
 AMI = ('ami-2d39803a', 'c4.xlarge') # Ubuntu
 HD_SIZE = 200 # primary drive size in GB
 SPOT_BID = 0.209 # bidding the on-demand price
