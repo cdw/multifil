@@ -40,7 +40,10 @@ SPOT_BID = 0.209 # bidding the on-demand price
 ## Helper functions, quite substantial
 def print_direct(string):
     """Print the given string straight to the stdout"""
-    sys.stdout.truncate(0)
+    try:
+        sys.stdout.truncate(0)
+    except AttributeError:
+        pass #for working with terminal and notebooks
     sys.stdout.write(string)
     sys.stdout.flush()
     return
