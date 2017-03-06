@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-run.py - control a run 
+run.py - control a run
 
 run.emit_meta produces a meta file that describes what we want a run to do: the
 values of the z_line, lattice spacing, and actin permissiveness through the run
@@ -9,7 +9,7 @@ and where it will be stored after completion.
 
 run.manage controls a run, locally on laptop or locally on an aws node, in
 either case without needing to know where it is running. It takes in a meta file
-produced by emit_run and uses it to configure a sarcomere 
+produced by emit_run and uses it to configure a sarcomere
 
 Created by Dave Williams on 2016-07-02
 """
@@ -29,20 +29,20 @@ import numpy as np
 from .. import hs
 
 ## Configure a run via a saved meta file
-def emit_meta(path_local, path_s3, timestep_length, timestep_number, 
+def emit_meta(path_local, path_s3, timestep_length, timestep_number,
               z_line=None, lattice_spacing=None, actin_permissiveness=None,
               comment = None, write = True, name=None):
     """Produce a structured JSON file that will be consumed to create a run
-    
-    emit_meta is intended as the counterpoint to the manage class and 
-    execute_run. Import emit_run into an interactive workspace and populate 
+
+    emit_meta is intended as the counterpoint to the manage class and
+    execute_run. Import emit_run into an interactive workspace and populate
     a directory with run configurations to be executed by a cluster.
-    
-    
+
+
     Parameters
     ----------
     path_local: string
-        The local (absolute or relative) directory to which we save both 
+        The local (absolute or relative) directory to which we save both
         emitted files and run output.
     path_s3: string
         The s3 bucket (and optional folder) to save run output to and to which
@@ -53,28 +53,28 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
         Number of timesteps run is simulated for
     z_line: float or tuple, optional
         If not given, default distance specified in hs.hs is used. If given as
-        float, the z-line distance for the run. If given as a tuple, used as 
+        float, the z-line distance for the run. If given as a tuple, used as
         arguments to the current z-line generation function within. The tuple
         format is currently: (offset, amp, period)
     lattice_spacing: float or tuple, optional
         Same as for z-line. The tuple format is currently: (rest_ls, rest_zln)
     actin_permissiveness: float or tuple, optional
-        Same as for z-line. The tuple format is currently: (cycle_period, phase, 
+        Same as for z-line. The tuple format is currently: (cycle_period, phase,
         stim_duration, influx_time, half_life)
     comment: string, optional
         Space for comment on the purpose or other characteristics of the run
     write: bool, optional
-        True (default) writes file to path_local/name.meta.json. Other values 
+        True (default) writes file to path_local/name.meta.json. Other values
         don't. In both cases the dictionary describing the run is returned.
-    
+
     Returns
     -------
     rund: dict
         Copy of run dictionary saved to disk as json.
-    
+
     Examples
     --------
-    >>> emit_meta('./', None, .1, 100, write=False) 
+    >>> emit_meta('./', None, .1, 100, write=False)
     {'actin_permissiveness': None,
     ...  'actin_permissiveness_func': None,
     ...  'comment': None,
@@ -107,7 +107,7 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
     ... 1242.65268435,  1238.11179355]),
     ... 'z_line_func': ('lambda offset, amp, period, time: offset + 0.5 * amp * np.sin(2*np.pi*time/period)',
     ... (1250, 25, 25))}
-    ... 
+    ...
     """
     rund = {}
     ## Simple run metadata
@@ -148,17 +148,17 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
         rund['lattice_spacing'] = lattice_spacing
         rund['lattice_spacing_func'] = None
     # Define variable actin permissiveness
-    def variable_actin_permissiveness(cycle_period, phase, stim_duration, 
+    def variable_actin_permissiveness(cycle_period, phase, stim_duration,
                                       influx_time, half_life):
         """Requires period of stim cycle, phase relative to longest length
-        point, duration of on time, time from 10 to 90% influx level, and 
+        point, duration of on time, time from 10 to 90% influx level, and
         the half-life of the Ca2+ out-pumping.
         """
         # Things we need to know for the shape of a single cycle
         decay_rate = np.log(1/2)/half_life
         growth_rate = 0.5*influx_time
         max_signal = 1.0
-        # Things we need to know for the cyclical nature of the signal 
+        # Things we need to know for the cyclical nature of the signal
         run_step_number = timestep_number #for ease of reading
         cycle_step_number = int(cycle_period/timestep_length)
         cycle_time_trace = np.arange(0, cycle_period, timestep_length)
@@ -188,20 +188,20 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
             for i in range(no_stim_step_number):
                 decay = timestep_length * out[-1] * decay_rate
                 out.append(out[-1]+decay)
-        # Smooth signal 
+        # Smooth signal
         out = np.convolve(normal, out)
         return out[2*cycle_step_number:2*cycle_step_number+run_step_number]
-    string_ap = """ def variable_actin_permissiveness(cycle_period, phase, stim_duration, 
+    string_ap = """ def variable_actin_permissiveness(cycle_period, phase, stim_duration,
                                       influx_time, half_life):
         \"\"\"Requires period of stim cycle, phase relative to longest length
-        point, duration of on time, time from 10 to 90% influx level, and 
+        point, duration of on time, time from 10 to 90% influx level, and
         the half-life of the Ca2+ out-pumping.
         \"\"\"
         # Things we need to know for the shape of a single cycle
         decay_rate = np.log(1/2)/half_life
         growth_rate = 0.5*influx_time
         max_signal = 1.0
-        # Things we need to know for the cyclical nature of the signal 
+        # Things we need to know for the cyclical nature of the signal
         run_step_number = timestep_number #for ease of reading
         cycle_step_number = int(cycle_period/timestep_length)
         cycle_time_trace = np.arange(0, cycle_period, timestep_length)
@@ -226,10 +226,10 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
             for i in range(no_stim_step_number):
                 decay = timestep_length * out[-1] * decay_rate
                 out.append(out[-1]+decay)
-        # Smooth signal 
+        # Smooth signal
         out = np.convolve(normal, out)
         return out[2*cycle_step_number:2*cycle_step_number+run_step_number]"""
-    # Parse actin permissiveness 
+    # Parse actin permissiveness
     rund['actin_permissiveness_args'] = str(actin_permissiveness) # For pandas
     if hasattr(actin_permissiveness, "__iter__"):
         rund['actin_permissiveness'] = variable_actin_permissiveness(
@@ -255,12 +255,12 @@ class manage(object):
         Parameters
         ----------
         metafile: string
-            The location of the metafile describing the run to be worked 
+            The location of the metafile describing the run to be worked
             through. Can be local or on S3. Assumed to be on S3 if the local
             file does not exist.
         unattended: boolean
-            Whether to complete the run without further intervention or treat 
-            as an interactive session. 
+            Whether to complete the run without further intervention or treat
+            as an interactive session.
         """
         self.s3 = s3()
         self.uuid = metafile.split('/')[-1].split('.')[0]
@@ -273,14 +273,14 @@ class manage(object):
                 self.run_and_save()
             except:
                 mp.current_process().terminate()
-    
+
     @staticmethod
     def _make_working_dir(name):
         """Create a temporary working directory and return the name"""
         wdname = '/tmp/'+name
         os.makedirs(wdname, exist_ok=True)
         return wdname
-    
+
     def _parse_metafile_location(self, metafile):
         """Parse the passed location, downloading the metafile if necessary"""
         if not os.path.exists(metafile):
@@ -288,17 +288,17 @@ class manage(object):
         else:
             mfn = '/'+metafile.split('/')[-1]
             return shutil.copyfile(metafile, self.working_dir+mfn)
-    
+
     @staticmethod
     def unpack_meta(metafilename):
         """Unpack the local meta file to a dictionary"""
         with open(metafilename, 'r') as metafile:
             meta = json.load(metafile)
         return meta
-    
+
     @staticmethod
     def unpack_meta_to_sarc(meta):
-        """Unpack the local meta file and instantiate a sarc as defined 
+        """Unpack the local meta file and instantiate a sarc as defined
         in the meta file
         """
         # Prep single values for instantiation of hs
@@ -320,10 +320,10 @@ class manage(object):
             time_dependence = time_dep_dict,
             )
         return sarc
-    
+
     def _copy_file_to_final_location(self, temp_full_fn, final_loc=None):
         """Copy file from the temporary location to the final resting places
-        
+
         Parameters
         ----------
         temp_full_fn: string
@@ -337,7 +337,7 @@ class manage(object):
         if self.meta['path_s3'] is not None:
             s3_loc = self.meta['path_s3']
             self.s3.push_to_s3(temp_loc, s3_loc)
-        # Store in final local path 
+        # Store in final local path
         if self.meta['path_local'] is not None:
             local_loc = os.path.abspath(os.path.expanduser(
                 self.meta['path_local'])) + file_name
@@ -347,7 +347,7 @@ class manage(object):
             local_loc = os.path.abspath(os.path.expanduser(location)) \
                     + file_name
             shutil.copyfile(temp_loc, local_loc)
-    
+
     def run_and_save(self):
         """Complete a run according to the loaded meta configuration and save
         results to meta-specified s3 and local locations"""
@@ -373,7 +373,7 @@ class manage(object):
         self._copy_file_to_final_location(sarc_final_name)
         self.sarcfile.delete() # clean up temp files
         self._log_it("uploading finished, done with this run")
-    
+
     def _run_status(self, timestep, start, every):
         """Report the run status"""
         if timestep%every==0 or timestep==0:
@@ -381,22 +381,22 @@ class manage(object):
             sec_passed = time.time()-start
             sec_left = int(sec_passed/(timestep+1)*(total_steps-timestep-1))
             self._log_it("finished %i/%i steps, %ih%im%is left"%(
-                timestep+1, total_steps, 
+                timestep+1, total_steps,
                 sec_left/60/60, sec_left/60%60, sec_left%60))
-    
+
     @staticmethod
     def _log_it(message):
         """Print message to sys.stdout"""
-        sys.stdout.write("run.py " + mp.current_process().name + 
+        sys.stdout.write("run.py " + mp.current_process().name +
                 " ## " + message + "\n")
         sys.stdout.flush()
 
 
-## File management 
+## File management
 class sarc_file(object):
     def __init__(self, sarc, meta, working_dir):
         """Handles recording a sarcomere dict to disk at each timestep"""
-        self.sarc = sarc 
+        self.sarc = sarc
         self.meta = meta
         self.working_directory = working_dir
         sarc_name = '/'+meta['name']+'.sarc.json'
@@ -404,7 +404,7 @@ class sarc_file(object):
         self.working_file = open(self.working_filename, 'a')
         self.next_write = '[\n'
         self.append(True)
-    
+
     def append(self, first=False):
         """Add the current timestep sarcomere to the sarc file"""
         if not first:
@@ -412,19 +412,19 @@ class sarc_file(object):
         self.next_write += json.dumps(self.sarc.to_dict(), sort_keys=True)
         self.working_file.write(self.next_write)
         self.next_write = ''
-    
+
     def finalize(self):
         """Close the current sarcomere file for proper JSON formatting"""
         self.working_file.write('\n]')
         self.working_file.close()
         time.sleep(1)
         self.zip_filename = self.meta['name']+'.sarc.tar.gz'
-        cp = subprocess.run(['tar', 'czf', self.zip_filename, 
-                             '-C', self.working_directory, 
+        cp = subprocess.run(['tar', 'czf', self.zip_filename,
+                             '-C', self.working_directory,
                              self.working_filename])
         os.remove(self.working_filename)
         return self.zip_filename
-    
+
     def delete(self):
         """Delete the sarc zip file from disk"""
         os.remove(self.zip_filename)
@@ -433,7 +433,7 @@ class sarc_file(object):
 class data_file(object):
     def __init__(self, sarc, meta, working_dir):
         """Generate the dictionary for use with the below data callback"""
-        self.sarc = sarc 
+        self.sarc = sarc
         self.meta = meta
         self.working_directory = working_dir
         self.data_dict = {
@@ -442,7 +442,7 @@ class data_file(object):
             'timestep': [],
             'z_line': [],
             'lattice_spacing': [],
-            'axial_force': [], 
+            'axial_force': [],
             'radial_force_y': [],
             'radial_force_z': [],
             'radial_tension': [],
@@ -466,10 +466,10 @@ class data_file(object):
             'thin_displace_min': [],
             'thin_displace_std': [],
         }
-    
+
     def append(self):
-        """Digest out the non-vector values we want to record for each 
-        timestep and append them to the data_dict. This is called at each 
+        """Digest out the non-vector values we want to record for each
+        timestep and append them to the data_dict. This is called at each
         timestep to build a dict for inclusion in a pandas dataframe.
         """
         ## Lambda helpers
@@ -479,9 +479,9 @@ class data_file(object):
         xb_fracs = self.sarc.get_frac_in_states()
         xb_trans = sum(sum(self.sarc.last_transitions,[]),[])
         act_perm = np.mean(self.sarc.actin_permissiveness)
-        thick_d = np.hstack([t.displacement_per_crown() 
+        thick_d = np.hstack([t.displacement_per_crown()
                              for t in self.sarc.thick])
-        thin_d = np.hstack([t.displacement_per_node() 
+        thin_d = np.hstack([t.displacement_per_node()
                             for t in self.sarc.thin])
         ## Dictionary work
         ad('timestep', self.sarc.current_timestep)
@@ -518,10 +518,10 @@ class data_file(object):
         with open(self.working_filename, 'w') as datafile:
             json.dump(self.data_dict, datafile, sort_keys=True)
         return self.working_filename
-    
+
     def delete(self):
         """Delete the data file from disk"""
-        try: 
+        try:
             os.remove(self.working_filename)
         except FileNotFoundError:
             print("File not created yet")
@@ -531,38 +531,38 @@ class s3(object):
     def __init__(self):
         """Provide an interface to to S3 that hides some error handling"""
         self._refresh_s3_connection()
-    
+
     def _refresh_s3_connection(self):
         """Reconnect to s3, the connection gets dropped sometimes"""
         self.s3 = boto.connect_s3()
-    
+
     def _get_bucket(self, bucket_name):
         """Return link to a bucket name"""
         try:
             bucket = self.s3.get_bucket(bucket_name)
-        except (boto.exception.BotoClientError, 
+        except (boto.exception.BotoClientError,
                 boto.exception.BotoClientError) as e:
             print(e)
             print("Trying to reconnect to s3")
             self._refresh_s3_connection()
             bucket = self.s3.get_bucket(bucket_name)
         return bucket
-    
+
     def pull_from_s3(self, name, local='./'):
-        """Given a key on S3, download it to a local file 
-        
+        """Given a key on S3, download it to a local file
+
         Parameters
         ----------
         name: string
-            bucket/keyname to download. can be prefixed by 's3://', '/', or 
+            bucket/keyname to download. can be prefixed by 's3://', '/', or
             by nothing
         local: string
             local directory to download key into, defaults to current directory
-        
+
         Returns
         -------
         None
-        
+
         Examples
         --------
         >>>pull_from_s3('s3://just_a_test_bucket/test')
@@ -588,10 +588,10 @@ class s3(object):
             print("Size mismatch, downloading again for %s: "%downloaded_name)
             key.get_contents_to_filename(downloaded_name)
         return downloaded_name
-    
+
     def push_to_s3(self, local, remote):
         """Given a local file, push it to a location on s3
-        
+
         Parameters
         ----------
         local: string
@@ -602,14 +602,14 @@ class s3(object):
                 s3://bucket/optional_folder/key
                 /bucket/optional_folder/key
                 bucket/optional_folder/key
-        
+
         Returns
         -------
         None
         """
         # Parse names
         file_name = local.split('/')[-1]
-        bucket_name = [n for n in remote.split('/') if len(n)>3][0] 
+        bucket_name = [n for n in remote.split('/') if len(n)>3][0]
         key_name = remote[len(bucket_name)+remote.index(bucket_name):]
         if len(key_name)==0 or key_name[-1] != '/':
             key_name += '/'

@@ -26,13 +26,13 @@ CODE_BUCKET = 'model-code'
 JOB_QUEUE = 'job-queue'
 STATUS_QUEUE = 'status-queue'
 KEY_FILE = os.path.expanduser('~/.aws/keys/id_aws')
-KEY_NAME = 'id_aws' 
+KEY_NAME = 'id_aws'
 SECURITY_GROUP_ID = 'sg-2a31b650'
 SUBNET_IDS = {'us-east-1a':'subnet-7653873f', # map an availability zone
               'us-east-1b':'subnet-39a5bf61', # to the right VPC
               'us-east-1c':'subnet-018b1b64',
-              'us-east-1d':'subnet-00ff1b2d', 
-              'us-east-1e':'subnet-a5957299'} 
+              'us-east-1d':'subnet-00ff1b2d',
+              'us-east-1e':'subnet-a5957299'}
 AMI = ('ami-2d39803a', 'c4.xlarge') # Ubuntu
 HD_SIZE = 200 # primary drive size in GB
 SPOT_BID = 0.209 # bidding the on-demand price
@@ -49,7 +49,7 @@ def print_direct(string):
     sys.stdout.flush()
     return
 
-def get_access_keys(filename=os.path.expanduser('~/.aws/credentials'), 
+def get_access_keys(filename=os.path.expanduser('~/.aws/credentials'),
                     section='cluster'):
     """Parse out the access and secret keys"""
     config = configparser.ConfigParser()
@@ -67,7 +67,7 @@ def get_bdm(ec2=boto.connect_ec2(), ami=AMI[0], size=HD_SIZE):
 def load_userdata(filename='userdata.py', queue_name=JOB_QUEUE):
     id, secret = get_access_keys()
     user_data_dict = {
-        'aws_access_key': id, 
+        'aws_access_key': id,
         'aws_secret_key': secret,
         'job_queue_name': queue_name,
         'code_zip_key': "s3://%s/%s.zip"%(CODE_BUCKET, CODE_DIR)}
@@ -77,29 +77,29 @@ def load_userdata(filename='userdata.py', queue_name=JOB_QUEUE):
 
 def update_code_on_s3():
     """Update the code on s3 from our local copy"""
-    zipname = CODE_DIR+'.zip' 
+    zipname = CODE_DIR+'.zip'
     # Not fragile at all... ha
     cmds = (
-        "cd %s; zip -roTFS -imultifil/\* -isetup* %s ./"%(BASE_PATH, zipname), 
+        "cd %s; zip -roTFS -imultifil/\* -isetup* %s ./"%(BASE_PATH, zipname),
         "cd %s; aws s3 cp %s s3://%s/"%(BASE_PATH, zipname, CODE_BUCKET))
     print(os.getcwd())
     print(cmds)
     [print(subp.call(c, shell=True)) for c in cmds]
 
-def launch_on_demand_instances(ec2, num_of, userdata, 
+def launch_on_demand_instances(ec2, num_of, userdata,
                                ami=AMI[0], inst_type=AMI[1]):
     if len(userdata) > 16*1024:
         print("error: User data file is too big")
         return
     reservation = ec2.run_instances(
         image_id           = ami,
-        key_name           = KEY_NAME, 
+        key_name           = KEY_NAME,
         security_group_ids = [SECURITY_GROUP_ID],
         user_data          = userdata,
         instance_type      = inst_type,
         min_count          = num_of,
         max_count          = num_of,
-        subnet_id          = SUBNET_IDS['us-east-1a'], 
+        subnet_id          = SUBNET_IDS['us-east-1a'],
         block_device_map   = get_bdm(ec2))
     time.sleep(.5) # Give the machines time to register
     nodes = copy.copy(reservation.instances)
@@ -115,9 +115,9 @@ def launch_spot_instances(ec2, num_of, userdata, bid=SPOT_BID,
     prices = [sph.price for sph in sphs]
     availability_zone = sphs[prices.index(min(prices))].availability_zone
     reservation = ec2.request_spot_instances(
-        price              = bid, 
+        price              = bid,
         image_id           = ami,
-        key_name           = KEY_NAME, 
+        key_name           = KEY_NAME,
         security_group_ids = [SECURITY_GROUP_ID],
         user_data          = userdata.encode('ascii'),
         instance_type      = inst_type,
@@ -152,7 +152,7 @@ def watch_cluster():
                     status_queue.delete_message(msg)
             # Make sure some instances are running
             running_instances = ec2.get_all_instances(
-                filters=({'instance-state-code':0, 
+                filters=({'instance-state-code':0,
                           'instance-state-code':16}))
             if len(running_instances) == 0:
                 print("\nNo running instances found")
@@ -167,9 +167,9 @@ def watch_cluster():
 
 
 class cluster(object):
-    def __init__(self, 
-                 number_of_instances, 
-                 queue_name=JOB_QUEUE, 
+    def __init__(self,
+                 number_of_instances,
+                 queue_name=JOB_QUEUE,
                  userdata=USER_DATA,
                  use_spot=True):
         """A cluster management object"""
@@ -185,23 +185,23 @@ class cluster(object):
         print("Uploading code to S3")
         update_code_on_s3()
         print("Creating reservation")
-        # TODO: This next bit could be refactored to be prettier 
+        # TODO: This next bit could be refactored to be prettier
         if self.use_spot is True:
-            nodes = launch_spot_instances(self.ec2, 
+            nodes = launch_spot_instances(self.ec2,
                                           self.number_of_instances,
                                           self.userdata)
             ids = [node.id for node in nodes]
-            node_states = lambda nodes: [node.state == 'active' 
+            node_states = lambda nodes: [node.state == 'active'
                             for node in nodes]
             node_update = lambda : self.ec2.get_all_spot_instance_requests(ids)
         else:
-            nodes = launch_on_demand_instances(self.ec2, 
+            nodes = launch_on_demand_instances(self.ec2,
                                                self.number_of_instances,
                                                self.userdata)
             ids = [node.id for node in nodes]
-            node_states = lambda nodes: [node.state_code == 16 
+            node_states = lambda nodes: [node.state_code == 16
                                          for node in nodes]
-            node_update = lambda : [inst for res in 
+            node_update = lambda : [inst for res in
                                     self.ec2.get_all_instances(ids)
                                     for inst in res.instances]
         print("Nodes are starting...")
@@ -223,5 +223,3 @@ class cluster(object):
     def node_ip_addresses(self):
         """Print the ip addresses for each node"""
         [print(instance.ip_address) for instance in nodes]
-    
-    
