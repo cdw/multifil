@@ -64,7 +64,7 @@ def halt_system():
 
 
 ## Munch tasks off a queue
-class queue_eater(object):
+class queue_eater:
     def __init__(self,  sqs_queue_name, id=None, secret=None, shutdown=True):
         """Consume an SQS queue. The queue consists of metafile locations.
         These locations are spun off into run.manage instances and the queue

@@ -166,7 +166,7 @@ def watch_cluster():
             pass
 
 
-class cluster(object):
+class cluster:
     def __init__(self,
                  number_of_instances,
                  queue_name=JOB_QUEUE,

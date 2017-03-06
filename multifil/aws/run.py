@@ -247,7 +247,7 @@ def emit_meta(path_local, path_s3, timestep_length, timestep_number,
 
 
 ## Manage a local run
-class manage(object):
+class manage:
     """Run, now with extra objor flavor"""
     def __init__(self, metafile, unattended=True):
         """Create a managed instance of the sarc, optionally running it
@@ -393,7 +393,7 @@ class manage(object):
 
 
 ## File management
-class sarc_file(object):
+class sarc_file:
     def __init__(self, sarc, meta, working_dir):
         """Handles recording a sarcomere dict to disk at each timestep"""
         self.sarc = sarc
@@ -430,7 +430,7 @@ class sarc_file(object):
         os.remove(self.zip_filename)
 
 
-class data_file(object):
+class data_file:
     def __init__(self, sarc, meta, working_dir):
         """Generate the dictionary for use with the below data callback"""
         self.sarc = sarc
@@ -527,7 +527,7 @@ class data_file(object):
             print("File not created yet")
 
 
-class s3(object):
+class s3:
     def __init__(self):
         """Provide an interface to to S3 that hides some error handling"""
         self._refresh_s3_connection()

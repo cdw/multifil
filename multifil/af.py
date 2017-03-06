@@ -11,7 +11,7 @@ Created by Dave Williams on 2010-01-04.
 import numpy as np
 
 
-class BindingSite(object):
+class BindingSite:
     """A singular globular actin site"""
     def __init__(self, parent_thin_fil, index, orientation):
         """Create a binding site on the thin filament
@@ -127,7 +127,7 @@ class BindingSite(object):
         return self.parent_thin.axial[self.index]
 
 
-class ThinFace(object):
+class ThinFace:
     """Represent one face of an actin filament
     Deals with orientation in the typical fashion for thin filaments
         ================
@@ -277,7 +277,7 @@ class ThinFace(object):
         return self.parent_thin.get_lattice_spacing()
 
 
-class ThinFilament(object):
+class ThinFilament:
     """Each thin filament is made up of two actin strands.  The overall
     filament length at rest is 1119 nm [(1)][Tanner2007].  Each strand
     hosts 45 actin binding sites (or nodes) giving the whole filament

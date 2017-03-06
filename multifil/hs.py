@@ -17,7 +17,7 @@ import scipy.optimize as opt
 from . import af
 from . import mf
 
-class hs(object):
+class hs:
     """The half-sarcomere and ways to manage it"""
     def __init__(self, lattice_spacing=None, z_line=None,
                 actin_permissiveness=None, timestep_len=1,

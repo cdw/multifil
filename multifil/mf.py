@@ -10,7 +10,7 @@ from . import mh
 import numpy as np
 
 
-class Crown(object):
+class Crown:
     """Three cross-bridges on a thick filament at a given axial location
 
     Crowns are a physiologically relevant division of the thick filament.
@@ -105,7 +105,7 @@ class Crown(object):
         return self.parent_thick.get_axial_location(self.index)
 
 
-class ThickFace(object):
+class ThickFace:
     """Represent one face of a thick filament
 
     Thick filaments have six faces, arranged thus:
@@ -294,7 +294,7 @@ class ThickFace(object):
         return self.parent_filament.get_lattice_spacing()
 
 
-class ThickFilament(object):
+class ThickFilament:
     """The thick filament is a string of myosin crowns
 
     It is attached to the m-line at one end and to nothing

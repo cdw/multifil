@@ -12,7 +12,7 @@ from numpy import pi, sqrt, log, radians
 import math as m
 import warnings
 
-class Spring(object):
+class Spring:
     """A generic spring, from which we make the myosin heads"""
     def __init__(self, config):
         ## Passed variables
@@ -99,7 +99,7 @@ class Spring(object):
         return (random.normal(self.r_w, self.stand_dev))
 
 
-class SingleSpringHead(object):
+class SingleSpringHead:
     """A single-spring myosin head, as in days of yore"""
     def __init__(self):
         """Create the spring that makes up the head and set energy values"""
@@ -311,7 +311,7 @@ class SingleSpringHead(object):
             return self.eta * -self.deltaG + k_xb * x**2
 
 
-class Head(object):
+class Head:
     """Head implements a single myosin head"""
     def __init__(self):
         """Create the springs that make up the head and set energy values
