@@ -123,7 +123,8 @@ class BindingSite:
         """Get lattice spacing from the parent filament"""
         return self.parent_thin.lattice_spacing
 
-    def get_axial_location(self):
+    @property
+    def axial_location(self):
         """Return the current axial location of the binding site"""
         return self.parent_thin.axial[self.index]
 
@@ -207,7 +208,7 @@ class ThinFace:
         # binding site just beyond the hiding line can be accessed
         hiding_line = self.parent_thin.hiding_line
         axial_location = max(hiding_line, axial_location)
-        face_locs = [site.get_axial_location() for site in self.binding_sites]
+        face_locs = [site.axial_location for site in self.binding_sites]
         close_index = np.searchsorted(face_locs, axial_location)
         # If not using a very short SL, where the end face loc is closest
         if close_index != len(face_locs):
@@ -269,9 +270,9 @@ class ThinFace:
         self.thick_face = myosin_face
         return
 
-    def axial_location(self, binding_site_id):
-        """Get the axial location of the selected binding site"""
-        return self.binding_sites[binding_site_id].get_axial_location()
+    def get_axial_location(self, binding_site_id):
+        """Get the axial location of the targeted binding site"""
+        return self.binding_sites[binding_site_id].axial_location
 
     @property
     def lattice_spacing(self):

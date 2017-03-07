@@ -675,10 +675,10 @@ class Crossbridge(Head):
             # Find the lattice spacing
             lattice_spacing = self._get_lattice_spacing()
             # Find this cross-bridge's axial location
-            xb_axial_loc = self._get_axial_location()
+            xb_axial_loc = self.axial_location
             # Find the potential binding site
             actin_site = self.thin_face.nearest(xb_axial_loc)
-            actin_axial_loc = actin_site.get_axial_location()
+            actin_axial_loc = actin_site.axial_location
             actin_state = actin_site.permissiveness
             # Find the axial separation
             axial_sep = actin_axial_loc - xb_axial_loc
@@ -741,7 +741,8 @@ class Crossbridge(Head):
         # Allow the myosin head to take it from here
         return super(Crossbridge, self).radialforce(distance_to_site)
 
-    def _get_axial_location(self):
+    @property
+    def axial_location(self):
         """Find the axial location of the thick filament attachment point
 
         Parameters:
@@ -769,10 +770,10 @@ class Crossbridge(Head):
         lattice_spacing = self._get_lattice_spacing()
         # Find this cross-bridge's axial location if need be
         if xb_axial_loc is None:
-            xb_axial_loc = self._get_axial_location()
+            xb_axial_loc = self.axial_location
         # Find the distance to the bound actin site if need be
         if tip_axial_loc is None:
-            tip_axial_loc = self.bound_to.get_axial_location()
+            tip_axial_loc = self.bound_to.axial_location
         # Combine the two distances
         return (tip_axial_loc - xb_axial_loc, lattice_spacing)
 

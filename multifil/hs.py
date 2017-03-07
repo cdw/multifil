@@ -411,7 +411,7 @@ class hs:
                 for crown in thick.crowns
                 for xb in crown.crossbridges])
         if 'axial_location' in prop_names:
-            props.append([xb._get_axial_location()
+            props.append([xb.axial_location
                 for thick in self.thick
                 for crown in thick.crowns
                 for xb in crown.crossbridges])

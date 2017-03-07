@@ -101,7 +101,8 @@ class Crown:
             if xb is not None:
                 xb.timestep = timestep
 
-    def get_axial_location(self):
+    @property
+    def axial_location(self):
         """Do what it says on the tin, return this crown's axial location"""
         return self.parent_thick.get_axial_location(self.index)
 
@@ -284,7 +285,7 @@ class ThickFace:
 
     def get_axial_location(self, crossbridge_index):
         """Return the axial location of a cross-bridge"""
-        return self.parent_filament.axial[crossbridge_index]
+        return self.parent_filament.get_axial_location(crossbridge_index)
 
     def get_states(self):
         """Return the numeric states (0,1,2) of all cross-bridges"""
