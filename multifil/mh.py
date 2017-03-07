@@ -191,7 +191,8 @@ class SingleSpringHead:
             state = self.state
         return self.g.energy(tip_location[0], state)
 
-    def get_numeric_state(self):
+    @property
+    def numeric_state(self):
         """Return the numeric state (0, 1, or 2) of the head"""
         lookup_state = {"free":0, "loose":1, "tight":2}
         return lookup_state[self.state]
@@ -431,7 +432,8 @@ class Head:
         xb_energy = self.c.energy(ang, state) + self.g.energy(dist, state)
         return xb_energy
 
-    def get_numeric_state(self):
+    @property
+    def numeric_state(self):
         """Return the numeric state (0, 1, or 2) of the head"""
         lookup_state = {"free":0, "loose":1, "tight":2}
         return lookup_state[self.state]

@@ -40,8 +40,8 @@ class BindingSite:
         """Return the current situation of the binding site"""
         ident = ['Binding Site #' + str(self.index) + ' Info']
         ident.append(14 * '=')
-        ident.append('State: ' + str(self.get_state()))
-        if self.get_state() != 0:
+        ident.append('State: ' + str(self.state))
+        if self.state != 0:
             ident.append('Forces: ' + str(self.axialforce())
                          + '/' + str(self.radialforce()))
         return '\n'.join(ident)
@@ -114,7 +114,8 @@ class BindingSite:
         assert(self.bound_to is not None) # Else why try to unbind?
         self.bound_to = None
 
-    def get_state(self):
+    @property
+    def state(self):
         """Return the current numerical state, 0/unbound or 1/bound"""
         return self.bound_to is not None
 

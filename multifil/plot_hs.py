@@ -64,11 +64,11 @@ class plot_hs:
             for face in thick.thick_faces:
                 self.bound[-1].append([])
                 for xb in face.xb:
-                    if xb.get_numeric_state != 0:
+                    if xb.numeric_state != 0:
                         self.bound[-1][-1].append(
                             (xb.face_index ,
                              xb.bound_to,
-                             xb.get_numeric_state()))
+                             xb.numeric_state))
 
     def __init__(self, hs):
         """Plot the half-sarcomere"""

@@ -194,9 +194,9 @@ class ThickFace:
         """
         thick = '|' + len(self.xb) * '='
         xb_string = [' ', '|', '\\']
-        thickbnd = ' ' + ''.join([xb_string[xb.get_numeric_state()]
+        thickbnd = ' ' + ''.join([xb_string[xb.numeric_state]
                                   for xb in self.xb])
-        thinbnd = 12*' ' + ''.join([xb_string[act.get_state()]
+        thinbnd = 12*' ' + ''.join([xb_string[act.state]
                                 for act in self.thin_face.binding_sites])
         thin = 12*' ' + len(self.thin_face.binding_sites) * '-' + '|'
         return (thick + '\n' + thickbnd + '\n' + thinbnd + '\n' + thin + '\n')
@@ -289,7 +289,7 @@ class ThickFace:
 
     def get_states(self):
         """Return the numeric states (0,1,2) of all cross-bridges"""
-        return [xb.get_numeric_state() for xb in self.xb]
+        return [xb.numeric_state for xb in self.xb]
 
     @property
     def lattice_spacing(self):

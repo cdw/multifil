@@ -406,7 +406,7 @@ class hs:
         props = []
         # Go through the property names, retrieving specified ones
         if 'numeric_state' in prop_names:
-            props.append([xb.get_numeric_state()
+            props.append([xb.numeric_state
                 for thick in self.thick
                 for crown in thick.crowns
                 for xb in crown.crossbridges])
@@ -565,7 +565,7 @@ class hs:
             for face in thick.thick_faces:
                 crossbridges = face.get_xb()
                 # Retrieve states
-                xb_states = [xb.get_numeric_state() for xb in crossbridges]
+                xb_states = [xb.numeric_state for xb in crossbridges]
                 # Count states that match our passed states of interest
                 count = sum([state in states for state in xb_states])
                 state_count[-1].append(count)
@@ -597,7 +597,7 @@ class hs:
         for thick in self.thick:
             vals.append([])
             for face in thick.thick_faces:
-                m_s = [xb.get_numeric_state() for xb in face.get_xb()]
+                m_s = [xb.numeric_state for xb in face.get_xb()]
                 m_s = [m in states for m in m_s]
                 while len(m_s) < 40:
                     m_s.append(-1)
