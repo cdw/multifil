@@ -237,6 +237,66 @@ class hs:
         # Track how long we've been running
         self.current_timestep = 0
 
+    def to_dict(self):
+        """Create a JSON compatible representation of the thick filament
+
+        Example usage: json.dumps(sarc.to_dict(), indent=1)
+
+        Current output includes:
+            version: version of the sarcomere model
+            timestep_len: the length of the timestep in ms
+            current_timestep: time to get a watch
+            lattice_spacing: the thick to thin distance
+            z_line: the z_line location
+            hiding_line: where binding sites become unavailable due to overlap
+            time_dependence: how "lattice_spacing", "z_line", and
+                "actin_permissiveness" can change
+            last_transitions: keeps track of the last state change by thick
+                filament and by crown
+            thick: the structures for the thick filaments
+            thin: the structures for the thin filaments
+        """
+        sd = self.__dict__.copy() # sarc dict
+        sd.pop('_timestep_len')
+        sd['timestep_len'] = self.timestep_len
+        sd['current_timestep'] = self.current_timestep
+        # set act_perm as mean since prop access returns values at every point
+        sd['actin_permissiveness'] = np.mean(self.actin_permissiveness)
+        sd['thick'] = [t.to_dict() for t in sd['thick']]
+        sd['thin'] = [t.to_dict() for t in sd['thin']]
+        return sd
+
+    def from_dict(self, sd):
+        """ Load values from a sarcomere dict. Values read in correspond to
+        the current output documented in to_dict.
+        """
+        # Warn of possible version mismatches
+        read, current = sd['version'], self.version
+        if read != current:
+            import warnings
+            warnings.warn("Versioning mismatch, reading %0.1f into %0.1f."
+                          %(read, current))
+        # Get filaments in right orientations
+        self.__init__(
+            lattice_spacing=sd['lattice_spacing'],
+            z_line=sd['z_line'],
+            actin_permissiveness=sd['actin_permissiveness'],
+            timestep_len=sd['timestep_len'],
+            time_dependence=sd['time_dependence'],
+            starts=(sd['_thin_starts'], sd['_thick_starts'])
+            )
+        # Local keys
+        self.current_timestep = sd['current_timestep']
+        self.z_line = sd['z_line']
+        self.hiding_line = sd['hiding_line']
+        if 'last_transitions' in sd.keys():
+            self.last_transitions = sd['last_transitions']
+        # Sub-structure keys
+        for data, thick in zip(sd['thick'], self.thick):
+            thick.from_dict(data)
+        for data, thin in zip(sd['thin'], self.thin):
+            thin.from_dict(data)
+
     def run(self, time_steps=100, callback=None, bar=True):
         """Run the model for the specified number of timesteps
 
@@ -312,6 +372,39 @@ class hs:
         self._current_timestep = i
         return
 
+    @property
+    def timestep_len(self):
+        """Get the length of the time step in ms"""
+        return self._timestep_len
+
+    @timestep_len.setter
+    def timestep_len(self, new_ts_len):
+        """Set the length of the time step in ms"""
+        self._timestep_len = new_ts_len
+        [thick._set_timestep(self._timestep_len) for thick in self.thick]
+        return
+
+    @property
+    def actin_permissiveness(self):
+        """How active & open to binding, 0 to 1, are binding sites?"""
+        return [thin.permissiveness for thin in self.thin]
+
+    @actin_permissiveness.setter
+    def actin_permissiveness(self, new_permissiveness):
+        """Assign all binding sites the new permissiveness, 0 to 1"""
+        for thin in self.thin:
+            thin.permissiveness = new_permissiveness
+
+    @property
+    def lattice_spacing(self):
+        """Return the current lattice spacing"""
+        return self._lattice_spacing
+
+    @lattice_spacing.setter
+    def lattice_spacing(self, new_lattice_spacing):
+        """Assign a new lattice spacing"""
+        self._lattice_spacing = new_lattice_spacing
+
     def axialforce(self):
         """Sum of each thick filament's axial force on the M-line """
         return sum([thick.effective_axial_force() for thick in self.thick])
@@ -349,42 +442,6 @@ class hs:
         mash = np.hstack([thick_f, thin_f])
         return mash
 
-    def _get_crossbridges_in_state(self, state):
-        """Return the number of cross-bridge in state x, by face"""
-        assert 0<=state<3, "Valid states are 0, 1, and 2"
-        state_count = []
-        for thick in self.thick:
-            state_count.append([]) # Append list for this thick filament
-            for face in thick.thick_faces:
-                xb_states = face.get_states()
-                # Count states that match our passed states of interest
-                count = sum([state == xb_s for xb_s in xb_states])
-                state_count[-1].append(count)
-        return state_count
-
-    @property
-    def timestep_len(self):
-        """Get the length of the time step in ms"""
-        return self._timestep_len
-
-    @timestep_len.setter
-    def timestep_len(self, new_ts_len):
-        """Set the length of the time step in ms"""
-        self._timestep_len = new_ts_len
-        [thick._set_timestep(self._timestep_len) for thick in self.thick]
-        return
-
-    @property
-    def actin_permissiveness(self):
-        """How active & open to binding, 0 to 1, are binding sites?"""
-        return [thin.permissiveness for thin in self.thin]
-
-    @actin_permissiveness.setter
-    def actin_permissiveness(self, new_permissiveness):
-        """Assign all binding sites the new permissiveness, 0 to 1"""
-        for thin in self.thin:
-            thin.permissiveness = new_permissiveness
-
     def get_frac_in_states(self):
         """Calculate the fraction of cross-bridges in each state"""
         nested = [t.get_states() for t in self.thick]
@@ -393,113 +450,10 @@ class hs:
         frac_in_state = [n/float(len(xb_states)) for n in num_in_state]
         return frac_in_state
 
-    def get_crossbridge_properties(self, prop_names):
-        """Create tuples of properties for each cross bridge
-
-        Parameters:
-            prop_names: list of cross-bridge property names to include
-                in our resulting output, currently supported are
-                'numeric_state', 'axial_location', and 'axial_force'
-        Outputs:
-            props: tuple of properties for each cross-bridge
-        """
-        props = []
-        # Go through the property names, retrieving specified ones
-        if 'numeric_state' in prop_names:
-            props.append([xb.numeric_state
-                for thick in self.thick
-                for crown in thick.crowns
-                for xb in crown.crossbridges])
-        if 'axial_location' in prop_names:
-            props.append([xb.axial_location
-                for thick in self.thick
-                for crown in thick.crowns
-                for xb in crown.crossbridges])
-        if 'axial_force' in prop_names:
-            props.append([xb.axialforce()
-                for thick in self.thick
-                for crown in thick.crowns
-                for xb in crown.crossbridges])
-        assert len(props)==len(prop_names), "Oops, didn't get that prop name"
-        # Glue the parts together by cross-bridge
-        props = [tuple(p[i] for p in props) for i in range(len(props[0]))]
-        return props
-
-    @property
-    def lattice_spacing(self):
-        """Return the current lattice spacing"""
-        return self._lattice_spacing
-
-    @lattice_spacing.setter
-    def lattice_spacing(self, new_lattice_spacing):
-        """Assign a new lattice spacing"""
-        self._lattice_spacing = new_lattice_spacing
-
-
     def update_hiding_line(self):
         """Update the line determining which actin sites are unavailable"""
         farthest_actin = min([min(thin.axial) for thin in self.thin])
         self.hiding_line = -farthest_actin
-
-    def to_dict(self):
-        """Create a JSON compatible representation of the thick filament
-
-        Example usage: json.dumps(sarc.to_dict(), indent=1)
-
-        Current output includes:
-            version: version of the sarcomere model
-            timestep_len: the length of the timestep in ms
-            current_timestep: time to get a watch
-            lattice_spacing: the thick to thin distance
-            z_line: the z_line location
-            hiding_line: where binding sites become unavailable due to overlap
-            time_dependence: how "lattice_spacing", "z_line", and
-                "actin_permissiveness" can change
-            last_transitions: keeps track of the last state change by thick
-                filament and by crown
-            thick: the structures for the thick filaments
-            thin: the structures for the thin filaments
-        """
-        sd = self.__dict__.copy() # sarc dict
-        sd.pop('_timestep_len')
-        sd['timestep_len'] = self.timestep_len
-        sd['current_timestep'] = self.current_timestep
-        # set act_perm as mean since prop access returns values at every point
-        sd['actin_permissiveness'] = np.mean(self.actin_permissiveness)
-        sd['thick'] = [t.to_dict() for t in sd['thick']]
-        sd['thin'] = [t.to_dict() for t in sd['thin']]
-        return sd
-
-    def from_dict(self, sd):
-        """ Load values from a sarcomere dict. Values read in correspond to
-        the current output documented in to_dict.
-        """
-        # Warn of possible version mismatches
-        read, current = sd['version'], self.version
-        if read != current:
-            import warnings
-            warnings.warn("Versioning mismatch, reading %0.1f into %0.1f."
-                          %(read, current))
-        # Get filaments in right orientations
-        self.__init__(
-            lattice_spacing=sd['lattice_spacing'],
-            z_line=sd['z_line'],
-            actin_permissiveness=sd['actin_permissiveness'],
-            timestep_len=sd['timestep_len'],
-            time_dependence=sd['time_dependence'],
-            starts=(sd['_thin_starts'], sd['_thick_starts'])
-            )
-        # Local keys
-        self.current_timestep = sd['current_timestep']
-        self.z_line = sd['z_line']
-        self.hiding_line = sd['hiding_line']
-        if 'last_transitions' in sd.keys():
-            self.last_transitions = sd['last_transitions']
-        # Sub-structure keys
-        for data, thick in zip(sd['thick'], self.thick):
-            thick.from_dict(data)
-        for data, thin in zip(sd['thin'], self.thin):
-            thin.from_dict(data)
 
     def resolve_address(self, address):
         """Give back a link to the object specified in the address
