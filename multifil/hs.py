@@ -425,9 +425,16 @@ class hs:
         props = [tuple(p[i] for p in props) for i in range(len(props[0]))]
         return props
 
-    def get_lattice_spacing(self):
+    @property
+    def lattice_spacing(self):
         """Return the current lattice spacing"""
-        return self.lattice_spacing
+        return self._lattice_spacing
+
+    @lattice_spacing.setter
+    def lattice_spacing(self, new_lattice_spacing):
+        """Assign a new lattice spacing"""
+        self._lattice_spacing = new_lattice_spacing
+
 
     def update_hiding_line(self):
         """Update the line determining which actin sites are unavailable"""

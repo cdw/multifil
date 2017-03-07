@@ -778,7 +778,7 @@ class Crossbridge(Head):
 
     def _get_lattice_spacing(self):
         """Ask our superiors for lattice spacing data"""
-        return self.parent_face.get_lattice_spacing()
+        return self.parent_face.lattice_spacing
 
 
 if __name__ == '__main__':

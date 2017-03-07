@@ -118,9 +118,10 @@ class BindingSite:
         """Return the current numerical state, 0/unbound or 1/bound"""
         return self.bound_to is not None
 
-    def get_lattice_spacing(self):
+    @property
+    def lattice_spacing(self):
         """Get lattice spacing from the parent filament"""
-        return self.parent_thin.get_lattice_spacing()
+        return self.parent_thin.lattice_spacing
 
     def get_axial_location(self):
         """Return the current axial location of the binding site"""
@@ -272,9 +273,10 @@ class ThinFace:
         """Get the axial location of the selected binding site"""
         return self.binding_sites[binding_site_id].get_axial_location()
 
-    def get_lattice_spacing(self):
+    @property
+    def lattice_spacing(self):
         """Return lattice spacing to the face's opposite number"""
-        return self.parent_thin.get_lattice_spacing()
+        return self.parent_thin.lattice_spacing
 
 
 class ThinFilament:
@@ -637,9 +639,10 @@ class ThinFilament:
         """Return the axial location of the node at index"""
         return self.axial[index]
 
-    def get_lattice_spacing(self):
+    @property
+    def lattice_spacing(self):
         """Return the lattice spacing of the half-sarcomere"""
-        return self.parent_lattice.get_lattice_spacing()
+        return self.parent_lattice.lattice_spacing
 
 
 if __name__ == '__main__':

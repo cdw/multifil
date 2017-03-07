@@ -28,7 +28,7 @@ class plot_hs:
         self.thick_s = [t.axialforce() for t in self.hs.thick]
         self.thin_s = [t.axialforce() for t in self.hs.thin]
         self.z_line = self.hs.z_line
-        ls = self.hs.get_lattice_spacing()
+        ls = self.hs.lattice_spacing
         # Calculate y and z locations of fils
         ls_g = np.sqrt(3)/2 * ls
         ls_d = 0.5 * ls
