@@ -405,6 +405,55 @@ class hs:
         """Assign a new lattice spacing"""
         self._lattice_spacing = new_lattice_spacing
 
+    @staticmethod
+    def ls_to_d10(face_dist):
+        """Convert face-to-face lattice spacing to d10 spacing.
+
+        Governing equations:
+            ls = ftf, the face to face distance
+            filcenter_dist = face_dist + .5 * dia_actin + .5 * dia_myosin
+            d10 = 1.5 * filcenter_dist
+        Values:
+            dia_actin: 9nm [1]_
+            dia_myosin: 16nm [2]_
+            example d10: 37nm for cardiac muscle at 2.2um [3]_
+        References:
+            .. [1] Egelman 1985, The structure of F-actin.
+                   J Muscle Res Cell Motil, Pg 130, values from 9 to 10 nm
+            .. [2] Woodhead et al. 2005, Atomic model of a myosin filament in
+                   the relaxed state. Nature, Pg 1195, in tarantula filament
+            .. [3] Millman 1998, The filament lattice of striated muscle.
+                   Physiol Rev,  Pg 375
+        Note: Arguably this should be moved to a support class as it really
+        isn't something the half-sarcomere knows about or does. I'm leaving it
+        here as a convenience for now.
+
+        Parameters:
+            face_dist: face to face lattice spacing in nm
+        Returns:
+            d10: d10 spacing in nm
+        """
+        filcenter_dist = face_dist + 0.5 * 9 + 0.5 * 16
+        d10 = 1.5* filcenter_dist
+        return d10
+
+    @staticmethod
+    def d10_to_ls(d10):
+        """Convert d10 spacing to face-to-face lattice spacing
+
+        Governing equations: See ls_to_d10
+        Values: See ls_to_d10
+
+        Parameters:
+            d10: d10 spacing in nm
+        Returns:
+            face_dist: face to face lattice spacing in nm
+        """
+        filcenter_dist = d10 * 2/3
+        face_dist = filcenter_dist - 0.5 * 9 - 0.5 * 16
+        return face_dist
+
+
     def axialforce(self):
         """Sum of each thick filament's axial force on the M-line """
         return sum([thick.effective_axial_force() for thick in self.thick])
