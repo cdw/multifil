@@ -19,14 +19,19 @@ from . import mf
 
 class hs:
     """The half-sarcomere and ways to manage it"""
-    def __init__(self, lattice_spacing=None, z_line=None,
-                actin_permissiveness=None, timestep_len=1,
+    def __init__(self, lattice_spacing=14.0, z_line=1250, poisson=0.0,
+                actin_permissiveness=1.0, timestep_len=1,
                 time_dependence=None, starts=None):
         """ Create the data structure that is the half-sarcomere model
 
         Parameters:
             lattice_spacing: the surface-to-surface distance (14.0)
             z_line: the length of the half-sarcomere (1250)
+            poisson: poisson ratio obeyed when z-line changes. Signficant
+                values are:
+                    * 0.5 - constant volume
+                    * 0.0 - constant lattice spacing, default value
+                    * any negative value - auxetic lattice spacing
             actin_permissiveness: how open actin sites are to binding (1.0)
             timestep_len: how many ms per timestep (1)
             time_dependence: a dictionary to override the initial lattice
@@ -111,7 +116,7 @@ class hs:
         """
         # Versioning, to be updated when backwards incompatible changes to the
         # data structure are made, not on release of new features
-        self.version = 1.1
+        self.version = 1.2
         # Parse initial LS and Z-line
         if time_dependence is not None:
             if 'lattice_spacing' in time_dependence:
@@ -119,10 +124,10 @@ class hs:
             if 'z_line' in time_dependence:
                 z_line = time_dependence['z_line'][0]
             # actin permissiveness is set below, after thin filament creation
-        if lattice_spacing is None:
-            lattice_spacing = 14.0
-        if z_line is None:
-            z_line = 1250
+        # Record initial values for use with poisson driven ls
+        self._initial_z_line = z_line
+        self._initial_lattice_spacing = lattice_spacing
+        self.poisson_ratio = poisson
         # Store these values for posterity
         self.time_dependence = time_dependence
         self.lattice_spacing = lattice_spacing
@@ -231,8 +236,6 @@ class hs:
             if 'actin_permissiveness' in time_dependence:
                 actin_permissiveness = \
                         time_dependence['actin_permissiveness'][0]
-        if actin_permissiveness is None:
-                actin_permissiveness = 1.0
         self.actin_permissiveness = actin_permissiveness
         # Track how long we've been running
         self.current_timestep = 0
@@ -278,8 +281,9 @@ class hs:
                           %(read, current))
         # Get filaments in right orientations
         self.__init__(
-            lattice_spacing=sd['lattice_spacing'],
-            z_line=sd['z_line'],
+            lattice_spacing=sd['_initial_lattice_spacing'],
+            z_line=sd['_initial_z_line'],
+            poisson=sd['poisson_ratio'],
             actin_permissiveness=sd['actin_permissiveness'],
             timestep_len=sd['timestep_len'],
             time_dependence=sd['time_dependence'],
@@ -287,7 +291,8 @@ class hs:
             )
         # Local keys
         self.current_timestep = sd['current_timestep']
-        self.z_line = sd['z_line']
+        self._z_line = sd['_z_line']
+        self._lattice_spacing = sd['_lattice_spacing']
         self.hiding_line = sd['hiding_line']
         if 'last_transitions' in sd.keys():
             self.last_transitions = sd['last_transitions']
@@ -396,6 +401,17 @@ class hs:
             thin.permissiveness = new_permissiveness
 
     @property
+    def z_line(self):
+        """Axial location of the z-line, length of the half sarcomere"""
+        return self._z_line
+
+    @z_line.setter
+    def z_line(self, new_z_line):
+        """Set a new z-line, updating the lattice spacing at the same time"""
+        self._z_line = new_z_line
+        self.update_ls_from_poisson_ratio()
+
+    @property
     def lattice_spacing(self):
         """Return the current lattice spacing"""
         return self._lattice_spacing
@@ -498,6 +514,45 @@ class hs:
         num_in_state = [xb_states.count(state) for state in range(3)]
         frac_in_state = [n/float(len(xb_states)) for n in num_in_state]
         return frac_in_state
+
+    def update_ls_from_poisson_ratio(self):
+        """Update the lattice spacing consistant with the poisson ratio,
+        initial lattice spacing, current z-line, and initial z-line
+
+        Governing equations
+        ===================
+        Poisson ratio := ν
+            ν = dε_r/dε_z = Δr/r_0 / Δz/z_0
+        From Mathematica derivation
+        γ := center to center distance between filaments
+            γ(ν, γ_0, z_0, Δz) = γ_0 (z_0/(z_0+Δz))^ν
+        And since we want the face-to-face distance, aka ls, we convert with:
+            γ = ls + 0.5 (dia_actin + dia_myosin)
+        and
+            γ_0 = ls_0 + 0.5 (dia_actin + dia_myosin)
+        and the simplifying
+            β = 0.5 (dia_actin + dia_myosin)
+        to get
+            ls = (ls_0 + β) (z_0/(z_0 + Δz))^ν - β
+        which is what we implement below.
+        Note: this is a novel derivation and so there is no current
+            citation to be invoked.
+
+        Values: See ls_to_d10
+
+        Parameters:
+            None
+        Returns:
+            None
+        """
+        beta =  0.5 * (9 + 16)
+        ls_0 = self._initial_lattice_spacing
+        z_0 = self._initial_z_line
+        nu = self.poisson_ratio
+        dz = self.z_line - z_0
+        ls = (ls_0 + beta) * (z_0/(z_0 + dz))**nu - beta
+        self.lattice_spacing = ls
+        return
 
     def update_hiding_line(self):
         """Update the line determining which actin sites are unavailable"""
