@@ -1,3 +1,4 @@
-from .run import emit_meta, manage
+from .run import manage
+from .metas import emit 
 from .instance import queue_eater
 from .cluster import watch_cluster

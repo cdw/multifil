@@ -12,7 +12,7 @@ from numpy import pi, sqrt, log, radians
 import math as m
 import warnings
 
-class Spring(object):
+class Spring:
     """A generic spring, from which we make the myosin heads"""
     def __init__(self, config):
         ## Passed variables
@@ -97,9 +97,13 @@ class Spring(object):
         Returns:
             spring_value: the length or angle of the spring after diffusion"""
         return (random.normal(self.r_w, self.stand_dev))
+<<<<<<< HEAD
+
+=======
+>>>>>>> run_type.workloop
 
 
-class SingleSpringHead(object):
+class SingleSpringHead:
     """A single-spring myosin head, as in days of yore"""
     def __init__(self):
         """Create the spring that makes up the head and set energy values"""
@@ -191,7 +195,12 @@ class SingleSpringHead(object):
             state = self.state
         return self.g.energy(tip_location[0], state)
 
+<<<<<<< HEAD
     def get_numeric_state(self):
+=======
+    @property
+    def numeric_state(self):
+>>>>>>> run_type.workloop
         """Return the numeric state (0, 1, or 2) of the head"""
         lookup_state = {"free":0, "loose":1, "tight":2}
         return lookup_state[self.state]
@@ -311,7 +320,7 @@ class SingleSpringHead(object):
             return self.eta * -self.deltaG + k_xb * x**2
 
 
-class Head(object):
+class Head:
     """Head implements a single myosin head"""
     def __init__(self):
         """Create the springs that make up the head and set energy values
@@ -431,7 +440,12 @@ class Head(object):
         xb_energy = self.c.energy(ang, state) + self.g.energy(dist, state)
         return xb_energy
 
+<<<<<<< HEAD
     def get_numeric_state(self):
+=======
+    @property
+    def numeric_state(self):
+>>>>>>> run_type.workloop
         """Return the numeric state (0, 1, or 2) of the head"""
         lookup_state = {"free":0, "loose":1, "tight":2}
         return lookup_state[self.state]
@@ -677,10 +691,10 @@ class Crossbridge(Head):
             # Find the lattice spacing
             lattice_spacing = self._get_lattice_spacing()
             # Find this cross-bridge's axial location
-            xb_axial_loc = self._get_axial_location()
+            xb_axial_loc = self.axial_location
             # Find the potential binding site
             actin_site = self.thin_face.nearest(xb_axial_loc)
-            actin_axial_loc = actin_site.get_axial_location()
+            actin_axial_loc = actin_site.axial_location
             actin_state = actin_site.permissiveness
             # Find the axial separation
             axial_sep = actin_axial_loc - xb_axial_loc
@@ -743,7 +757,12 @@ class Crossbridge(Head):
         # Allow the myosin head to take it from here
         return super(Crossbridge, self).radialforce(distance_to_site)
 
+<<<<<<< HEAD
     def _get_axial_location(self):
+=======
+    @property
+    def axial_location(self):
+>>>>>>> run_type.workloop
         """Find the axial location of the thick filament attachment point
 
         Parameters:
@@ -771,16 +790,16 @@ class Crossbridge(Head):
         lattice_spacing = self._get_lattice_spacing()
         # Find this cross-bridge's axial location if need be
         if xb_axial_loc is None:
-            xb_axial_loc = self._get_axial_location()
+            xb_axial_loc = self.axial_location
         # Find the distance to the bound actin site if need be
         if tip_axial_loc is None:
-            tip_axial_loc = self.bound_to.get_axial_location()
+            tip_axial_loc = self.bound_to.axial_location
         # Combine the two distances
         return (tip_axial_loc - xb_axial_loc, lattice_spacing)
 
     def _get_lattice_spacing(self):
         """Ask our superiors for lattice spacing data"""
-        return self.parent_face.get_lattice_spacing()
+        return self.parent_face.lattice_spacing
 
 
 if __name__ == '__main__':

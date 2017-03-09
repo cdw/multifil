@@ -19,8 +19,8 @@ fil_seg = 12
 fil_color = 'jet'
 fil_lims = (-1.0, 1.0)
 
-class plot_hs(object):
-    
+class plot_hs:
+
     def update_locs(self):
         # Get needed info from the half-sarcomere
         self.thick_xlocs = [t.axial for t in self.hs.thick]
@@ -28,20 +28,20 @@ class plot_hs(object):
         self.thick_s = [t.axialforce() for t in self.hs.thick]
         self.thin_s = [t.axialforce() for t in self.hs.thin]
         self.z_line = self.hs.z_line
-        ls = self.hs.get_lattice_spacing()
+        ls = self.hs.lattice_spacing
         # Calculate y and z locations of fils
         ls_g = np.sqrt(3)/2 * ls
         ls_d = 0.5 * ls
-        self.thick_yzlocs = [(0, 0), 
-                             (0 + 2*ls_g, 0), 
-                             (0 + ls_g,   0 - 3*ls_d), 
+        self.thick_yzlocs = [(0, 0),
+                             (0 + 2*ls_g, 0),
+                             (0 + ls_g,   0 - 3*ls_d),
                              (0 + 3*ls_g, 0 - 3*ls_d)]
         act_a = lambda y,z: (y - ls_g, z + ls_d)
         act_b = lambda y,z: (y, z + 2*ls_d)
         act_c = lambda y,z: (y + ls_g, z + ls_d)
         act_d = lambda y,z: (y + ls_g, z - ls_d)
         act_e = lambda y,z: (y, z - 2*ls_d)
-        act_f = lambda y,z: (y - ls_g, z - ls-d) 
+        act_f = lambda y,z: (y - ls_g, z - ls-d)
         self.thin_yzlocs = [act_c(self.thick_yzlocs[1]),
                             act_b(self.thick_yzlocs[0]),
                             act_a(self.thick_yzlocs[1]),
@@ -50,12 +50,12 @@ class plot_hs(object):
                             act_c(self.thick_yzlocs[3]),
                             act_b(self.thick_yzlocs[2]),
                             act_c(self.thick_yzlocs[2])]
-    
+
     def update_ends(self):
         """Update the effective forces at filament ends"""
         self.thick_end = [t.effective_axial_force() for t in self.hs.thick]
         self.thin_end = [t.effective_axial_force() for t in self.hs.thin]
-    
+
     def update_bound(self):
         """Update which cross-bridges are bound and their states"""
         self.bound = []
@@ -64,12 +64,12 @@ class plot_hs(object):
             for face in thick.thick_faces:
                 self.bound[-1].append([])
                 for xb in face.xb:
-                    if xb.get_numeric_state != 0:
+                    if xb.numeric_state != 0:
                         self.bound[-1][-1].append(
                             (xb.face_index ,
                              xb.bound_to,
-                             xb.get_numeric_state()))
-    
+                             xb.numeric_state))
+
     def __init__(self, hs):
         """Plot the half-sarcomere"""
         self.hs = hs
@@ -123,12 +123,12 @@ class plot_hs(object):
                 # TODO: THIS IS WHERE I LEFT OFF ON IMPLEMENTING
                 # CROSS-BRIDGE PLOTTING. THIS IS A BIT OF A STICKY FELLOW IN
                 # THAT IT REQUIRES THE CROSS-BRIDGES BE EITHER ALL SHOWN
-                # (WHICH IS VISUALLY CLUTTERED) OR DELETED AS NEEDED WITH 
+                # (WHICH IS VISUALLY CLUTTERED) OR DELETED AS NEEDED WITH
                 # EACH REDISPLAY (WHICH IS COMPLICATED). THE WAY TO GO IS
-                # PROBABLY TO DELETE ALL WITH EACH REDISPLAY AND THEN PLOT 
+                # PROBABLY TO DELETE ALL WITH EACH REDISPLAY AND THEN PLOT
                 # ALL CROSS-BRIDGES ANEW EACH TIME.
                 pass
-    
+
     def update(self):
         """Update the visualization"""
         self.update_locs()
@@ -146,25 +146,25 @@ class plot_hs(object):
             ts = tube.mlab_source
             ts.set(x = x, y = y, z = z, scalars = s)
         for cube, s in zip(self.thick_end_cube, self.thick_end):
-            s = [s] 
+            s = [s]
             cube.mlab_source.set(scalars = s)
         for cube, s in zip(self.thin_end_cube, self.thin_end):
-            s = [s] 
+            s = [s]
             cube.mlab_source.set(scalars = s)
         self.enable_rendering()
-    
+
     def disable_rendering(self):
         """Kill rendering of the scene objects
-        
+
         This makes things vastly faster if done when re-rendering
-        things, as the whole scene will only be re-rendered once, 
+        things, as the whole scene will only be re-rendered once,
         rather than as each """
         disable = lambda x: x.scene.set(disable_render=True)
         map(disable, self.thick_tubes)
         map(disable, self.thin_tubes)
         map(disable, self.thick_end_cube)
         map(disable, self.thin_end_cube)
-    
+
     def enable_rendering(self):
         """Unkill rendering of the scene objects"""
         enable = lambda x: x.scene.set(disable_render=False)

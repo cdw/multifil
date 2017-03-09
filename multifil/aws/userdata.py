@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 """
-sqs_control_userdata_script.py - control an aws instance from a sqs queue
+userdata_script.py - control an aws instance from a sqs queue
 
-Run this guy on startup as a userdata script and he will connect to 
-s3 to download code to a directory, and run commands in it that are 
+Run this guy on startup as a userdata script and he will connect to
+s3 to download code to a directory, and run commands in it that are
 provided by an SQS queue, one job at a time per core
 
 Processing as a string template, we replace the following keys with their
@@ -59,7 +59,7 @@ CODE_ZIP_KEY = '$code_zip_key'
 
 ## Write out boto configuration
 lines = """[Credentials]
-aws_access_key_id = %s 
+aws_access_key_id = %s
 aws_secret_access_key = %s \n"""%(ACCESS_KEY, SECRET_KEY)
 with open('.boto', 'w') as config_file:
     config_file.writelines(lines)
@@ -82,7 +82,7 @@ try:
     code_bucket = S3.get_bucket(bucket_name)
     key = code_bucket.get_key(key_name)
     key.get_contents_to_filename(key_name)
-    try_and_log("unzip %s"%key_name, 
+    try_and_log("unzip %s"%key_name,
                 "Unzipped local code file %s with result: "%key_name)
     time.sleep(3) # poor man's race condition control!
 except boto.exception.S3ResponseError:
@@ -96,7 +96,7 @@ try:
     log_it(str(dir()))
     log_it("Turning things over to queue eater processes")
     commandment = "python3 -c \"import multifil;\
-        multifil.aws.instance.multi_eaters('%s',shutdown=True)\""%JOB_QUEUE 
+        multifil.aws.instance.multi_eaters('%s',shutdown=True)\""%JOB_QUEUE
     try_and_log(commandment, "Called sub-process to manage queue eaters")
     log_it("All done")
 except Exception as e:
@@ -107,5 +107,3 @@ except Exception as e:
     log_it("Going no further, shutting down now")
 finally:
     os.system('shutdown now -h')
-    
-    
