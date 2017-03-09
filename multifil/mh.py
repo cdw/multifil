@@ -97,10 +97,6 @@ class Spring:
         Returns:
             spring_value: the length or angle of the spring after diffusion"""
         return (random.normal(self.r_w, self.stand_dev))
-<<<<<<< HEAD
-
-=======
->>>>>>> run_type.workloop
 
 
 class SingleSpringHead:
@@ -195,12 +191,8 @@ class SingleSpringHead:
             state = self.state
         return self.g.energy(tip_location[0], state)
 
-<<<<<<< HEAD
-    def get_numeric_state(self):
-=======
     @property
     def numeric_state(self):
->>>>>>> run_type.workloop
         """Return the numeric state (0, 1, or 2) of the head"""
         lookup_state = {"free":0, "loose":1, "tight":2}
         return lookup_state[self.state]
@@ -440,12 +432,8 @@ class Head:
         xb_energy = self.c.energy(ang, state) + self.g.energy(dist, state)
         return xb_energy
 
-<<<<<<< HEAD
-    def get_numeric_state(self):
-=======
     @property
     def numeric_state(self):
->>>>>>> run_type.workloop
         """Return the numeric state (0, 1, or 2) of the head"""
         lookup_state = {"free":0, "loose":1, "tight":2}
         return lookup_state[self.state]
@@ -757,12 +745,8 @@ class Crossbridge(Head):
         # Allow the myosin head to take it from here
         return super(Crossbridge, self).radialforce(distance_to_site)
 
-<<<<<<< HEAD
-    def _get_axial_location(self):
-=======
     @property
     def axial_location(self):
->>>>>>> run_type.workloop
         """Find the axial location of the thick filament attachment point
 
         Parameters:
