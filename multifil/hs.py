@@ -19,7 +19,7 @@ from . import mf
 
 class hs:
     """The half-sarcomere and ways to manage it"""
-    def __init__(self, lattice_spacing=14.0, z_line=1250, poisson=0.0,
+    def __init__(self, lattice_spacing=None, z_line=None, poisson=None,
                 actin_permissiveness=1.0, timestep_len=1,
                 time_dependence=None, starts=None):
         """ Create the data structure that is the half-sarcomere model
@@ -124,12 +124,20 @@ class hs:
             if 'z_line' in time_dependence:
                 z_line = time_dependence['z_line'][0]
             # actin permissiveness is set below, after thin filament creation
+        self.time_dependence = time_dependence
+        # The next few lines use detection of None rather than a sensible
+        # default value as a passed None is an explicit selection of default
+        if lattice_spacing is None:
+            lattice_spacing = 14.0
+        if z_line is None:
+            z_line = 1250
+        if poisson is None:
+            poisson = 0.0
         # Record initial values for use with poisson driven ls
         self._initial_z_line = z_line
         self._initial_lattice_spacing = lattice_spacing
         self.poisson_ratio = poisson
         # Store these values for posterity
-        self.time_dependence = time_dependence
         self.lattice_spacing = lattice_spacing
         self.z_line = z_line
         # Create the thin filaments, unlinked but oriented on creation.

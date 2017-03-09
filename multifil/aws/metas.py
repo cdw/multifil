@@ -131,7 +131,7 @@ def actin_permissiveness_workloop(freq, phase, stim_duration,
 
 
 ## Configure a run via a saved meta file
-def emit(path_local, path_s3, time,  poisson=0.0, z_line=None,
+def emit(path_local, path_s3, time,  poisson=0.0, ls=None, z_line=None,
     actin_permissiveness=None, comment = None, write = True, **kwargs):
     """Produce a structured JSON file that will be consumed to create a run
 
@@ -151,6 +151,10 @@ def emit(path_local, path_s3, time,  poisson=0.0, z_line=None,
     poisson: float
         poisson ratio of lattice. 0.5 const vol; 0 default const lattice;
         negative for auxetic
+    ls: float, optional
+        Specifies the initial starting lattice spacing which will act as a
+        zero or offset for the spacing. If not given, the default lattice
+        spacing from hs.hs will be used.
     z_line: float or iterable, optional
         If not given, default distance specified in hs.hs is used. If given as
         float, the z-line distance for the run. If given as an iterable, used as
@@ -198,6 +202,7 @@ def emit(path_local, path_s3, time,  poisson=0.0, z_line=None,
     rund['path_local'] = path_local
     rund['path_s3'] = path_s3
     rund['poisson_ratio'] = poisson
+    rund['lattice_spacing'] = ls
     rund['z_line'] = z_line
     rund['actin_permissiveness'] = actin_permissiveness
     rund['timestep_length'] = np.diff(time)[0]

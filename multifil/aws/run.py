@@ -85,18 +85,19 @@ class manage:
         """
         # Prep single values for instantiation of hs
         none_if_list = lambda s: None if type(meta[s]) is list else meta[s]
-        z_line = none_if_list('z_line')
         lattice_spacing = none_if_list('lattice_spacing')
+        z_line = none_if_list('z_line')
         actin_permissiveness = none_if_list('actin_permissiveness')
         # Time dependent values
         time_dep_dict = {}
-        for prop in ['lattice_spacing', 'z_line', 'actin_permissiveness']:
+        for prop in ['z_line', 'actin_permissiveness']:
             if type(meta[prop]) is list:
                 time_dep_dict[prop] = meta[prop]
         # Instantiate sarcomere
         sarc = hs.hs(
             lattice_spacing = lattice_spacing,
             z_line = z_line,
+            poisson = meta['poisson_ratio'],
             actin_permissiveness = actin_permissiveness,
             timestep_len = meta['timestep_length'],
             time_dependence = time_dep_dict,
