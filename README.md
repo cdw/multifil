@@ -15,4 +15,4 @@ sarc = multifil.hs.hs()
 axial_force = sarc.run()
 ```
 
-More complicated runs (workloops, length-velocity calculations) require the modification of sarcomere parameters such as z-line-to-m-line distance and Calcium activation during the run. This is managed by the `aws.run.py` module through the reading of JSON formatted meta files. The metafiles are specified in the same. 
+More complicated runs (workloops, length-velocity calculations) require the modification of sarcomere parameters such as z-line-to-m-line distance and Calcium activation during the run. This is managed by the `aws.run.py` module through the reading of JSON formatted meta files. The metafiles are specified in `aws.metas.py` module. 
