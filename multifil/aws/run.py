@@ -124,7 +124,10 @@ class manage:
         if self.meta['path_local'] is not None:
             local_loc = os.path.abspath(os.path.expanduser(
                 self.meta['path_local'])) + file_name
-            shutil.copyfile(temp_loc, local_loc)
+            try:
+                shutil.copyfile(temp_loc, local_loc)
+            except shutil.SameFileError:
+                pass
         # Save to passes local location
         if final_loc is not None:
             local_loc = os.path.abspath(os.path.expanduser(location)) \
