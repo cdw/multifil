@@ -51,7 +51,7 @@ def fatal_error(error_log_message, feed_me = "differently", shutdown=False):
         halt_system()
 
 def running_error(exception):
-    """An error that occured while running a job"""
+    """An error that occurred while running a job"""
     log_it("### An error occurred while running jobs")
     log_it("Exception of type " + str(type(exception)) +
            ": " + exception.message)
