@@ -44,16 +44,16 @@ import numpy as np
 from .. import hs
 
 ## Define traces to be used in runs
-def time(timestep_length, timestep_number):
+def time(timestep_length, run_length_in_ms):
     """Create a time series in ms. This is easily doable through other methods
     but this documents it a bit.
 
     timestep_length: float
         Length of a timestep in ms
-    timestep_number: int
+    run_length_in_ms: int
         Number of timesteps run is simulated for
     """
-    return np.arange(0, timestep_number*timestep_length, timestep_length)
+    return np.arange(0, run_length_in_ms, timestep_length)
 
 def zline_workloop(offset, amp, freq, time):
     """A sinusoidal oscillatory length trace.
