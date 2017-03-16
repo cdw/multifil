@@ -20,7 +20,7 @@ from . import mf
 class hs:
     """The half-sarcomere and ways to manage it"""
     def __init__(self, lattice_spacing=None, z_line=None, poisson=None,
-                actin_permissiveness=1.0, timestep_len=1,
+                actin_permissiveness=None, timestep_len=1,
                 time_dependence=None, starts=None):
         """ Create the data structure that is the half-sarcomere model
 
@@ -244,6 +244,8 @@ class hs:
             if 'actin_permissiveness' in time_dependence:
                 actin_permissiveness = \
                         time_dependence['actin_permissiveness'][0]
+        if actin_permissiveness is None:
+            actin_permissiveness = 1.0
         self.actin_permissiveness = actin_permissiveness
         # Track how long we've been running
         self.current_timestep = 0
@@ -476,7 +478,6 @@ class hs:
         filcenter_dist = d10 * 2/3
         face_dist = filcenter_dist - 0.5 * 9 - 0.5 * 16
         return face_dist
-
 
     def axialforce(self):
         """Sum of each thick filament's axial force on the M-line """
