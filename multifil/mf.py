@@ -337,13 +337,14 @@ class ThickFilament:
         ..." repeating pattern.
 
         ## Crown spacing and thick filament length
-        Each half thick filament is 858 nm long and consists of 60 myosin
-        nodes and one node at the M-line [(2)][Tanner2007].  As each of the
-        myosin nodes is the location of a 3-myosin crown, each half-thick
-        filament will have 180 myosins, slightly more than the 150 present
-        in mammalian striated muscle [(2)][Tanner2007].  The M-line side of
-        the thick filament has an initial bare zone of from 80 nm
-        [(3)][Higuchi1995] to 58 nm [(2)][Tanner2007].
+        Omitting the bare zone, the crown-decorated region of a half thick-
+        filament is 858 nm long and consists of 60 myosin nodes and one node 
+        at the M-line [(2)][Tanner2007].  As each of the myosin nodes is a 
+        3-myosin crown, each half-thick filament will have 180 myosins, 
+        slightly more than the 150 present in mammalian striated muscle 
+        [(2)][Tanner2007].  The M-line side of the thick filament has an 
+        initial bare zone of from 80 nm [(3)][Higuchi1995] to 58 nm 
+        [(2)][Tanner2007]. We choose to use the 58nm value.
 
         The crowns are on a 43 nm repeat, with three crowns per repeat.
         This means that each crown will be spaced 43/3 = 14.3 nm apart.
