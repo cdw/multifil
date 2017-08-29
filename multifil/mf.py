@@ -558,12 +558,12 @@ class ThickFilament:
         # Return the combination of backbone and crown forces
         return np.add(thick, crown)
 
-    def settle(self):
+    def settle(self, factor):
         """Reduce the total axial force on the system by moving the crowns"""
         # Total axial force on each point
         forces = self.axialforce()
         # Individual displacements needed to balance force
-        isolated = 0.95*forces/self.k
+        isolated = factor*forces/self.k
         isolated[-1] *= 2 # Last node has spring on only one side
         # Cumulative displacements
         cumulative = np.cumsum(isolated)

@@ -491,10 +491,10 @@ class hs:
         """The sum of the thick filaments' radial forces, as a (y,z) vector"""
         return np.sum([t.radial_force_of_filament() for t in self.thick], 0)
 
-    def _single_settle(self):
+    def _single_settle(self, factor=0.95):
         """Settle down now, just a little bit"""
-        thick = [thick.settle() for thick in self.thick]
-        thin = [thin.settle() for thin in self.thin]
+        thick = [thick.settle(factor) for thick in self.thick]
+        thin = [thin.settle(factor) for thin in self.thin]
         return np.max((np.max(np.abs(thick)), np.max(np.abs(thin))))
 
     def settle(self):
