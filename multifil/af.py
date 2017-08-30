@@ -283,12 +283,12 @@ class ThinFace:
 
 class ThinFilament:
     """Each thin filament is made up of two actin strands.  The overall
-    filament length at rest is 1119 nm [(1)][Tanner2007].  Each strand
+    filament length at rest is 1119 nm [Tanner2007].  Each strand
     hosts 45 actin binding sites (or nodes) giving the whole filament
     90 actin nodes, plus one at the Z-line for accounting.
 
     These nodes are located every 24.8 nm on each actin strand and are
-    rotated by 120 degrees relative to the prior node [(1)][Tanner2007].
+    rotated by 120 degrees relative to the prior node [Tanner2007].
     This organization does not specify the relative offsets of the two
     filament's nodes.
 
@@ -309,6 +309,7 @@ class ThinFilament:
     As in the thick filament, the nodes/binding sites on the thin filament
     are numbered from low at the left to high on the right. Thus the 90th
     node is adjacent to the Z-line.
+    [Tanner2007]:http://dx.doi.org/10.1371/journal.pcbi.0030115
     """
     def __init__(self, parent_lattice, index, face_orientations, start=0):
         """Initialize the thin filament
