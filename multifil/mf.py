@@ -95,12 +95,6 @@ class Crown:
         """Do what it says on the tin"""
         return self.parent_thick.lattice_spacing
 
-    def _set_timestep(self, timestep):
-        """Set the length of time step used to calculate transitions"""
-        for xb in self.crossbridges:
-            if xb is not None:
-                xb.timestep = timestep
-
     @property
     def axial_location(self):
         """Do what it says on the tin, return this crown's axial location"""
@@ -617,10 +611,6 @@ class ThickFilament:
     def get_axial_location(self, index):
         """Return the axial location at the given crown index"""
         return self.axial[index]
-
-    def _set_timestep(self, timestep):
-        """Set the length of time step used to calculate transitions"""
-        [crown._set_timestep(timestep) for crown in self.crowns]
 
     def get_states(self):
         """Return the numeric states (0,1,2) of each face's cross-bridges"""

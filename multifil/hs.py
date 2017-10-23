@@ -270,8 +270,6 @@ class hs:
             thin: the structures for the thin filaments
         """
         sd = self.__dict__.copy() # sarc dict
-        sd.pop('_timestep_len')
-        sd['timestep_len'] = self.timestep_len
         sd['current_timestep'] = self.current_timestep
         # set act_perm as mean since prop access returns values at every point
         sd['actin_permissiveness'] = np.mean(self.actin_permissiveness)
@@ -385,18 +383,6 @@ class hs:
             if 'actin_permissiveness' in td:
                 self.actin_permissiveness = td['actin_permissiveness'][i]
         self._current_timestep = i
-        return
-
-    @property
-    def timestep_len(self):
-        """Get the length of the time step in ms"""
-        return self._timestep_len
-
-    @timestep_len.setter
-    def timestep_len(self, new_ts_len):
-        """Set the length of the time step in ms"""
-        self._timestep_len = new_ts_len
-        [thick._set_timestep(self._timestep_len) for thick in self.thick]
         return
 
     @property
