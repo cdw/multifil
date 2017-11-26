@@ -9,11 +9,8 @@ Created by Dave Williams on 2009-12-31.
 import sys
 import os
 import multiprocessing as mp
-import unittest
 import time
-import ujson as json
 import numpy as np
-import scipy.optimize as opt
 from . import af
 from . import mf
 
