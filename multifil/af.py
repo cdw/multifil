@@ -281,6 +281,205 @@ class ThinFace:
         return self.parent_thin.lattice_spacing
 
 
+class Tropomyosin:
+    """Regulate the binding permissiveness of actin strands. 
+    
+    Tropomyosin stands in for both the Tm and the Tn. 
+    
+    # Kinetics
+    The equilibrium state of a transition, K, is given by the ratio of forward
+    to reverse transition rates, K = k_forward/k_reverse. Taking our kinetics
+    from Tanner 2007 we define the three equilibrium states and their attendant
+    forward transition rates. The equilibrium rates, K1, K2, and K3,
+    correspond to the transitions thus:
+    
+        Tm+Tn+Ca <-K1-> Tm+Tn.Ca <-K2-> Tm.Tn.Ca <-K3-> Tm+Tn+Ca
+    
+    The forward transition rates are labeled as k_12, k_23, k_31. Reverse
+    transitions are calculated from the above values. K1 and K2 are explicitly
+    defined. In Tanner2007 K3 is stated to be obtained from the balancing 
+    equation for equilibrium conditions, K1*K2*K3 = 1, but is instead defined
+    directly. This implies non-equilibrium conditions, fair enough. 
+
+    Only K1 is dependent on [Ca], although it would make sense for K3 to be so
+    as well as Ca2+ detachment is surely dependent on [Ca]. 
+   
+    No rates include a temperature dependence. 
+
+    # Structure
+    The arrangement of the tropomyosin on the thin filament is represented as
+    having an ability to be calcium regulated at each binding site with the
+    option to spread that calcium regulation to adjacent binding sites. I am
+    only grudgingly accepting of this as a representation of the TmTn
+    interaction structure, but it is a reasonable first pass. 
+    """
+    def __init__(self, parent_thin, binding_sites):
+        """Save the binding sites along a set of tropomyosin strands, 
+        in preparation for altering availability of binding sites. 
+        
+        Parameters:
+            parent_thin: thin filament on which the tropomyosin lives
+            binding_sites: list of acting binding sites on this tm string
+        """
+        self.parent_thin = parent_thin
+        self.binding_sites = binding_sites
+        self._link_binding_sites()
+        self.rests = [bs.axial_location for bs in binding_sites]
+        self.states = [0 for bs in binding_sites] #three states
+        self.binding_influence = [0 for bs in binding_sites]
+        self.span = 37 #influence span (Tanner 2007)
+        ## Kinetics from Tanner 2007 and Tanner Thesis
+        K1 = 1e5         # per mole Ca
+        K2 = 10          # unitless
+        K3 = 1e6         # unitless
+        k_12 = 5e5       # per mole Ca per sec
+        k_23 = 10        # per sec
+        k_31 = 5         # per sec
+        s_per_ms = 1e-3  # seconds per millisecond
+        k_12 *= s_per_ms # convert rates from 
+        k_23 *= s_per_ms # occurrences per second
+        k_31 *= s_per_ms # to occurrences per ms
+        self._K1, self._K2, self._K3 = K1, K2, K3
+        self._k_12, self._k_23, self._k_31 = k_12, k_23, k_31
+
+    @property
+    def timestep(self):
+        """Timestep size is stored at the half-sarcomere level"""
+        return self.parent_thin.parent_lattice.timestep_len
+
+    @property
+    def pCa(self):
+        """pCa stored at the half-sarcomere level"""
+        pCa = self.parent_thin.parent_lattice.pCa 
+        assert pCa>0, "pCa must be given in positive units by convention"
+        return pCa
+
+    @property
+    def ca(self):
+        """The calcium concentration stored at the half-sarcomere level"""
+        Ca = 10.0**(-self.pCa)
+        return Ca
+
+    def _link_binding_sites(self):
+        """Establish links to binding sites
+        This is done such that each binding site knows what tropomyosin chain 
+        it is attached to and what its index is on that chain for the purpose 
+        of looking up the effects of tropomyosin on binding at that site
+        location. 
+        """
+        for i, bs in enumerate(self.binding_sites):
+            bs.tropomyosin = (self, i)
+
+    def _r12(self):
+        """Rate of Ca and TnC association, conditional on [Ca]"""
+        forward = self._k_12 * self.ca
+        return forward
+
+    def _r21(self):
+        """Rate of Ca detachment from TnC, conditional on [Ca]"""
+        forward = self._r12()
+        reverse = forward / self._K1
+        return reverse
+
+    def _r23(self):
+        """Rate of TnI TnC association"""
+        forward = self._k_23
+        return forward
+
+    def _r32(self):
+        """Rate of TnI TnC detachment"""
+        forward = self._r23()
+        reverse = forward / self._K2
+        return reverse
+
+    def _r31(self):
+        """Rate of Ca disassociation induced TnI TnC disassociation
+        TODO: figure out calcium dependence
+        """
+        forward = self._k_31 
+        return forward
+
+    def _r13(self):
+        """Rate of simultaneous Ca binding and TnI TnC association.
+        Should be quite low. 
+        TODO: figure out calcium dependence
+        """
+        forward = self._r31()
+        reverse = forward / self._K3
+        return reverse
+
+    def _prob(self, rate):
+        """ Convert a rate to a probability, based on the current timestep
+        length and the assumption that the rate is for a Poisson process.
+        We are asking, what is the probability that at least one Poisson
+        distributed value would occur during the timestep.
+
+        Parameters
+        ----------
+            rate: float
+                a per millisecond rate to convert to probability
+        Returns
+        -------
+            probability: float
+                the probability the event occurs during a timestep
+                of length determined by self.timestep
+        """
+        return 1 - np.exp(-rate*self.timestep)
+
+    @staticmethod
+    def _forward_backward(forward_p, backward_p, rand):
+        """Transition forward or backward based on random variable, return
+        "forward", "backward", or "none"
+        """
+        if rand<forward_p:
+            return "forward"
+        elif rand>(1-backward_p):
+            return "backward"
+        return "none"
+
+    def _site_trans(self, state):
+        """ Transition from one state to the next, or back, or don't """
+        rand = np.random.random()
+        if state==0:
+            f, b = self._prob(self._r12()), self._prob(self._r13())
+            trans_word = self._forward_backward(f, b, rand)
+            return {"forward":1, "backward":2, "none":0}[trans_word]
+        elif state==1:
+            f, b = self._prob(self._r23()), self._prob(self._r21())
+            trans_word = self._forward_backward(f, b, rand)
+            return {"forward":2, "backward":0, "none":1}[trans_word]
+        elif state==2:
+            f, b = self._prob(self._r31()), self._prob(self._r32())
+            trans_word = self._forward_backward(f, b, rand)
+            return {"forward":0, "backward":1, "none":2}[trans_word]
+        assert state in (0,1,2), "Tropomyosin state has invalid value"
+        return
+
+    def transition(self):
+        """Chunk through all binding sites, transition if need be, 
+        recalculate the binding influence
+        """
+        self.states = [self._site_trans(s) for s in self.states]
+        # Simplifying assumption: each site is within exactly one span
+        min_one_span = max(np.diff(self.rest))<self.span 
+        max_one_span = min(np.diff(self.rest))>0.5*self.span
+        error_string = "transition convolution assumption violation"
+        assert min_one_span and max_one_span, error_string
+        # Spread activation to adjacent sites
+        if self.states[0] == 0 and self.states[1] == 2:
+            self.states[0] = 1
+        for i, s in enumerate(self.states):
+            if i>0 and i<len(self.states)-1:
+                if s == 0:
+                    if self.states[i-1]==2 or self.states[i+1]==2:
+                        self.states[i] = 1
+        if self.states[-1] == 0 and self.states[-2] ==2:
+            self.states[-1] = 1
+        # Translate state to binding influence
+        self.binding_influence = [{0:0, 1:0, 2:1}[s] for s in self.states]
+        return 
+
+
 class ThinFilament:
     """Each thin filament is made up of two actin strands.  The overall
     filament length at rest is 1119 nm [Tanner2007].  Each strand
