@@ -115,6 +115,12 @@ class BindingSite:
         self.bound_to = None
 
     @property
+    def permissiveness(self):
+        """What is your availability to bind, based on tropomyosin status?"""
+        tm, i = self.tropomyosin
+        return tm.binding_influence[i]
+
+    @property
     def state(self):
         """Return the current numerical state, 0/unbound or 1/bound"""
         return self.bound_to is not None
@@ -837,12 +843,6 @@ class ThinFilament:
     def permissiveness(self):
         """Return the permissiveness of each binding site"""
         return [site.permissiveness for site in self.binding_sites]
-
-    @permissiveness.setter
-    def permissiveness(self, new_permissiveness):
-        """Assign all binding sites the new permissiveness"""
-        for site in self.binding_sites:
-            site.permissiveness = new_permissiveness
 
     def get_binding_site(self, index):
         """Return a link to the binding site site at index"""
