@@ -309,7 +309,17 @@ class ThinFilament:
     As in the thick filament, the nodes/binding sites on the thin filament
     are numbered from low at the left to high on the right. Thus the 90th
     node is adjacent to the Z-line.
+
+    ## Tropomyosin tracks
+    While the filament is modeled as a one-start helix, as described in 
+    [Squire1981], chains of tropomyosin polymers follow the more gently
+    curving two-start helix representation as seen in [Gunning2015]. 
+    Assignment to tm chain a or b occurs with respect to the odd-even
+    value of a monomer's index in the initial list of monomers. 
+
     [Tanner2007]:http://dx.doi.org/10.1371/journal.pcbi.0030115
+    [Squire2981]:http://dx.doi.org/10.1007/978-1-4613-3183-4
+    [Gunning2015]:http://dx.doi.org/10.1242/jcs.172502
     """
     def __init__(self, parent_lattice, index, face_orientations, start=0):
         """Initialize the thin filament
@@ -402,6 +412,12 @@ class ThinFilament:
         # Remember the axial locations, both current and rest
         self.axial = axial_flat
         self.rests = np.diff(np.hstack([self.axial, self.z_line]))
+        # Create links to two tropomyosin filament tracks
+        bs_by_two_start = [[], []]
+        for bs, ax in zip(self.binding_sites, axial_flat):
+            mono_index = monomer_positions.index(ax)
+            bs_by_two_start[mono_index%2].append(bs)
+        self.tm = [Tropomyosin(self, bs_chain) for bs_chain in bs_by_two_start]
         # Other thin filament properties to remember
         self.number_of_nodes = len(self.binding_sites)
         self.thick_faces = None # Set after creation of thick filaments
