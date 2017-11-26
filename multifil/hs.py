@@ -27,7 +27,7 @@ class hs:
         Parameters:
             lattice_spacing: the surface-to-surface distance (14.0)
             z_line: the length of the half-sarcomere (1250)
-            poisson: poisson ratio obeyed when z-line changes. Signficant
+            poisson: poisson ratio obeyed when z-line changes. Significant
                 values are:
                     * 0.5 - constant volume
                     * 0.0 - constant lattice spacing, default value
