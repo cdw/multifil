@@ -31,8 +31,8 @@ class BindingSite:
         orientation_vectors = ((0.866, -0.5), (0, -1), (-0.866, -0.5),
                 (-0.866, 0.5), (0, 1), (0.866, 0.5))
         self.orientation = orientation_vectors[orientation]
-        # Start off in an activated state, fully open to binding
-        self.permissiveness = 1.0
+        # Start off unlinked to a tromomyosin chain/index upon the chain
+        self.tropomyosin = (None, None)
         # Create attributes to store things not yet present
         self.bound_to = None # None if unbound, Crossbridge object otherwise
 

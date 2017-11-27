@@ -17,8 +17,7 @@ from . import mf
 class hs:
     """The half-sarcomere and ways to manage it"""
     def __init__(self, lattice_spacing=None, z_line=None, poisson=None,
-                actin_permissiveness=None, timestep_len=1,
-                time_dependence=None, starts=None):
+                pCa=None, timestep_len=1, time_dependence=None, starts=None):
         """ Create the data structure that is the half-sarcomere model
 
         Parameters:
@@ -29,7 +28,8 @@ class hs:
                     * 0.5 - constant volume
                     * 0.0 - constant lattice spacing, default value
                     * any negative value - auxetic lattice spacing
-            actin_permissiveness: how open actin sites are to binding (1.0)
+            pCa: pCa, controlling tropomyosin movement and thus binding site
+                availability, positive by convention (4.0)
             timestep_len: how many ms per timestep (1)
             time_dependence: a dictionary to override the initial lattice
                 spacing, sarcomere length, and actin permissiveness at each
@@ -113,14 +113,15 @@ class hs:
         """
         # Versioning, to be updated when backwards incompatible changes to the
         # data structure are made, not on release of new features
-        self.version = 1.2
+        self.version = 1.3
         # Parse initial LS and Z-line
         if time_dependence is not None:
             if 'lattice_spacing' in time_dependence:
                 lattice_spacing = time_dependence['lattice_spacing'][0]
             if 'z_line' in time_dependence:
                 z_line = time_dependence['z_line'][0]
-            # actin permissiveness is set below, after thin filament creation
+            if 'pCa' in time_dependence:
+                pCa = time_dependence['pCa'][0]
         self.time_dependence = time_dependence
         # The next few lines use detection of None rather than a sensible
         # default value as a passed None is an explicit selection of default
@@ -128,6 +129,8 @@ class hs:
             lattice_spacing = 14.0
         if z_line is None:
             z_line = 1250
+        if pCa is None:
+            pCa = 4.0
         if poisson is None:
             poisson = 0.0
         # Record initial values for use with poisson driven ls
@@ -137,6 +140,7 @@ class hs:
         # Store these values for posterity
         self.lattice_spacing = lattice_spacing
         self.z_line = z_line
+        self.pCa = pCa
         # Create the thin filaments, unlinked but oriented on creation.
         thin_orientations = ([4,0,2], [3,5,1], [4,0,2], [3,5,1],
                 [3,5,1], [4,0,2], [3,5,1], [4,0,2])
@@ -236,14 +240,6 @@ class hs:
             self.thick[3].thick_faces[0], self.thick[2].thick_faces[2]))
         # Set the timestep for all our new cross-bridges
         self.timestep_len = timestep_len
-        # Set actin_permissiveness for all our new binding sites
-        if time_dependence is not None:
-            if 'actin_permissiveness' in time_dependence:
-                actin_permissiveness = \
-                        time_dependence['actin_permissiveness'][0]
-        if actin_permissiveness is None:
-            actin_permissiveness = 1.0
-        self.actin_permissiveness = actin_permissiveness
         # Track how long we've been running
         self.current_timestep = 0
 
@@ -258,9 +254,10 @@ class hs:
             current_timestep: time to get a watch
             lattice_spacing: the thick to thin distance
             z_line: the z_line location
+            pCa: the calcium level
             hiding_line: where binding sites become unavailable due to overlap
-            time_dependence: how "lattice_spacing", "z_line", and
-                "actin_permissiveness" can change
+            time_dependence: dictionary of how "lattice_spacing", "z_line", 
+                and "pCa" can change
             last_transitions: keeps track of the last state change by thick
                 filament and by crown
             thick: the structures for the thick filaments
@@ -289,7 +286,7 @@ class hs:
             lattice_spacing=sd['_initial_lattice_spacing'],
             z_line=sd['_initial_z_line'],
             poisson=sd['poisson_ratio'],
-            actin_permissiveness=sd['actin_permissiveness'],
+            pCa=sd['pCa'],
             timestep_len=sd['timestep_len'],
             time_dependence=sd['time_dependence'],
             starts=(sd['_thin_starts'], sd['_thick_starts'])
@@ -377,8 +374,8 @@ class hs:
                 self.lattice_spacing = td['lattice_spacing'][i]
             if 'z_line' in td:
                 self.z_line = td['z_line'][i]
-            if 'actin_permissiveness' in td:
-                self.actin_permissiveness = td['actin_permissiveness'][i]
+            if 'pCa' in td:
+                self.pCa = td['pCa'][i]
         self._current_timestep = i
         return
 
@@ -386,12 +383,6 @@ class hs:
     def actin_permissiveness(self):
         """How active & open to binding, 0 to 1, are binding sites?"""
         return [thin.permissiveness for thin in self.thin]
-
-    @actin_permissiveness.setter
-    def actin_permissiveness(self, new_permissiveness):
-        """Assign all binding sites the new permissiveness, 0 to 1"""
-        for thin in self.thin:
-            thin.permissiveness = new_permissiveness
 
     @property
     def z_line(self):
