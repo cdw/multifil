@@ -56,13 +56,15 @@ class BindingSite:
             bound_to: T/F if the binding site is bound
             orientation: the y/z orientation of the binding site relative to
                 the center of the thin filament
-            permissiveness: the 0-1 level of binding permissiveness
+            tropomyosin: the tropomyosin the bs is governed by
         """
         bsd = self.__dict__.copy()
         bsd.pop('index')
         bsd.pop('parent_thin')
         if bsd['bound_to'] is not None:
             bsd['bound_to'] = bsd['bound_to'].address
+        bsd['tropomyosin'] = (bsd['tropomyosin'][0].address,
+                              bsd['tropomyosin'][1])
         return bsd
 
     def from_dict(self, bsd):
@@ -80,6 +82,9 @@ class BindingSite:
                     resolve_address(bsd['bound_to'])
         else:
             self.bound_to = bsd['bound_to']
+        self.tropomyosin = (
+            self.parent_thin.resolve_address(bsd['tropomyosin'][0]),
+            bsd['tropomyosin'][1])
 
     def axialforce(self, axial_location=None):
         """Return the axial force of the bound cross-bridge, if any
@@ -319,15 +324,18 @@ class Tropomyosin:
     only grudgingly accepting of this as a representation of the TmTn
     interaction structure, but it is a reasonable first pass. 
     """
-    def __init__(self, parent_thin, binding_sites):
+    def __init__(self, parent_thin, binding_sites, index):
         """Save the binding sites along a set of tropomyosin strands, 
         in preparation for altering availability of binding sites. 
         
         Parameters:
             parent_thin: thin filament on which the tropomyosin lives
             binding_sites: list of acting binding sites on this tm string
+            index: which tm chain this is on the thin filament
         """
         self.parent_thin = parent_thin
+        self.index = index
+        self.address = ("tropomyosin", parent_thin.index, index)
         self.binding_sites = binding_sites
         self._link_binding_sites()
         self.rests = [bs.axial_location for bs in binding_sites]
@@ -352,6 +360,47 @@ class Tropomyosin:
     def timestep(self):
         """Timestep size is stored at the half-sarcomere level"""
         return self.parent_thin.parent_lattice.timestep_len
+
+    def to_dict(self):
+        """Create a JSON compatible representation of the tropomyosin chain
+
+        Usage example:json.dumps(tm.to_dict(), indent=1)
+
+        Current output includes:
+            address: largest to most local, indices for finding this
+            binding_sites: addresses of binding sites
+            rests: resting positions of each point along the chain
+            states: kinetic states of each point along the chain
+            binding_influence: what the state tells you
+            span: how far an activation spreads
+            _k_12 - _k_31: transition rates
+            _K1 - _K3: kinetic balances for reverse rates
+        """
+        tmd = self.__dict__.copy()
+        tmd['binding_sites'] = [bs.address for bs in tmd['binding_sites']]
+        return tmd
+
+    def from_dict(self, tmd):
+        """ Load values from a tropomyosin dict. Values read correspond to 
+        the current output documented in to_dict.
+        """
+        # Check for index mismatch
+        read, current = tuple(tmd['address']), self.address
+        assert read==current, "index mismatch at %s/%s"%(read, current)
+        # Local keys
+        self.binding_sites = [
+            self.parent_thin.parent_lattice.resolve_address(bsa) 
+            for bsa in tmd['binding_sites']]
+        self.rests = tmd['rests']
+        self.states = tmd['states']
+        self.binding_influence = tmd['binding_influence']
+        self.span = tmd['span']
+        self._k_12 = tmd['_k_12'] 
+        self._k_23 = tmd['_k_23']
+        self._k_31 = tmd['_k_31']
+        self._K1 = tmd['_K1']
+        self._K2 = tmd['_K2']
+        self._K3 = tmd['_K3']
 
     @property
     def pCa(self):
@@ -622,7 +671,8 @@ class ThinFilament:
         for bs, ax in zip(self.binding_sites, axial_flat):
             mono_index = monomer_positions.index(ax)
             bs_by_two_start[mono_index%2].append(bs)
-        self.tm = [Tropomyosin(self, bs_chain) for bs_chain in bs_by_two_start]
+        self.tm = [Tropomyosin(self, bs_chain, ind) for ind, bs_chain in
+                   enumerate(bs_by_two_start)]
         # Other thin filament properties to remember
         self.number_of_nodes = len(self.binding_sites)
         self.thick_faces = None # Set after creation of thick filaments
@@ -672,6 +722,8 @@ class ThinFilament:
             bs.from_dict(data)
         for data, face in zip(td['thin_faces'], self.thin_faces):
             face.from_dict(data)
+        for data, chain in zip(td['tm'], self.tm):
+            chain.from_dict(data)
 
     def resolve_address(self, address):
         """Give back a link to the object specified in the address
@@ -681,6 +733,8 @@ class ThinFilament:
             return self.thin_faces[address[2]]
         elif address[0] == 'bs':
             return self.binding_sites[address[2]]
+        elif address[0] == 'tropomyosin':
+            return self.tm[address[2]]
         import warnings
         warnings.warn("Unresolvable address: %s"%address)
 
