@@ -516,8 +516,8 @@ class Tropomyosin:
         """
         self.states = [self._site_trans(s) for s in self.states]
         # Simplifying assumption: each site is within exactly one span
-        min_one_span = max(np.diff(self.rest))<self.span 
-        max_one_span = min(np.diff(self.rest))>0.5*self.span
+        min_one_span = max(np.diff(self.rests))<self.span 
+        max_one_span = min(np.diff(self.rests))>0.5*self.span
         error_string = "transition convolution assumption violation"
         assert min_one_span and max_one_span, error_string
         # Spread activation to adjacent sites
