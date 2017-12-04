@@ -320,7 +320,7 @@ class Tropomyosin:
         for site in self.sites:
             if site.state == 2:
                 loc = site.axial_location
-                near_inds = np.nonzero(np.abs(locs-loc)<self.span)
+                near_inds = np.nonzero(np.abs(locs-loc)<self.span)[0]
                 near = [self.sites[index] for index in near_inds]
                 for site in near:
                     if site.state != 2:
