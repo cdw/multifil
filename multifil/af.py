@@ -76,7 +76,6 @@ class BindingSite:
         assert read==current, "index mismatch at %s/%s"%(read, current)
         # Local keys
         self.orientation = bsd['orientation']
-        self.permissiveness = bsd['permissiveness']
         if bsd['bound_to'] is not None:
             self.bound_to = self.parent_thin.parent_lattice.\
                     resolve_address(bsd['bound_to'])
