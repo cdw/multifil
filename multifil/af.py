@@ -9,6 +9,7 @@ Created by Dave Williams on 2010-01-04.
 """
 
 import numpy as np
+from . import tm
 
 
 class BindingSite:
@@ -31,8 +32,8 @@ class BindingSite:
         orientation_vectors = ((0.866, -0.5), (0, -1), (-0.866, -0.5),
                 (-0.866, 0.5), (0, 1), (0.866, 0.5))
         self.orientation = orientation_vectors[orientation]
-        # Start off unlinked to a tromomyosin chain/index upon the chain
-        self.tropomyosin = (None, None)
+        # Start off unlinked to a tromomyosin site
+        self.tm_site = None
         # Create attributes to store things not yet present
         self.bound_to = None # None if unbound, Crossbridge object otherwise
 
@@ -63,8 +64,7 @@ class BindingSite:
         bsd.pop('parent_thin')
         if bsd['bound_to'] is not None:
             bsd['bound_to'] = bsd['bound_to'].address
-        bsd['tropomyosin'] = (bsd['tropomyosin'][0].address,
-                              bsd['tropomyosin'][1])
+        bsd['tm_site'] = bsd['tm_site'].address
         return bsd
 
     def from_dict(self, bsd):
@@ -82,9 +82,8 @@ class BindingSite:
                     resolve_address(bsd['bound_to'])
         else:
             self.bound_to = bsd['bound_to']
-        self.tropomyosin = (
-            self.parent_thin.resolve_address(bsd['tropomyosin'][0]),
-            bsd['tropomyosin'][1])
+        self.tm_site = self.parent_thin.parent_lattice.resolve_address(
+            bsd['tm_site'])
 
     def axialforce(self, axial_location=None):
         """Return the axial force of the bound cross-bridge, if any
@@ -122,8 +121,7 @@ class BindingSite:
     @property
     def permissiveness(self):
         """What is your availability to bind, based on tropomyosin status?"""
-        tm, i = self.tropomyosin
-        return tm.binding_influence[i]
+        return self.tm_site.binding_influence
 
     @property
     def state(self):
@@ -292,265 +290,6 @@ class ThinFace:
         return self.parent_thin.lattice_spacing
 
 
-class Tropomyosin:
-    """Regulate the binding permissiveness of actin strands. 
-    
-    Tropomyosin stands in for both the Tm and the Tn. 
-    
-    # Kinetics
-    The equilibrium state of a transition, K, is given by the ratio of forward
-    to reverse transition rates, K = k_forward/k_reverse. Taking our kinetics
-    from Tanner 2007 we define the three equilibrium states and their attendant
-    forward transition rates. The equilibrium rates, K1, K2, and K3,
-    correspond to the transitions thus:
-    
-        Tm+Tn+Ca <-K1-> Tm+Tn.Ca <-K2-> Tm.Tn.Ca <-K3-> Tm+Tn+Ca
-    
-    The forward transition rates are labeled as k_12, k_23, k_31. Reverse
-    transitions are calculated from the above values. K1 and K2 are explicitly
-    defined. In Tanner2007 K3 is stated to be obtained from the balancing 
-    equation for equilibrium conditions, K1*K2*K3 = 1, but is instead defined
-    directly. This implies non-equilibrium conditions, fair enough. 
-
-    Only K1 is dependent on [Ca], although it would make sense for K3 to be so
-    as well as Ca2+ detachment is surely dependent on [Ca]. 
-   
-    No rates include a temperature dependence. 
-
-    # Structure
-    The arrangement of the tropomyosin on the thin filament is represented as
-    having an ability to be calcium regulated at each binding site with the
-    option to spread that calcium regulation to adjacent binding sites. I am
-    only grudgingly accepting of this as a representation of the TmTn
-    interaction structure, but it is a reasonable first pass. 
-    """
-    def __init__(self, parent_thin, binding_sites, index):
-        """Save the binding sites along a set of tropomyosin strands, 
-        in preparation for altering availability of binding sites. 
-        
-        Parameters:
-            parent_thin: thin filament on which the tropomyosin lives
-            binding_sites: list of acting binding sites on this tm string
-            index: which tm chain this is on the thin filament
-        """
-        self.parent_thin = parent_thin
-        self.index = index
-        self.address = ("tropomyosin", parent_thin.index, index)
-        self.binding_sites = binding_sites
-        self._link_binding_sites()
-        self.rests = [bs.axial_location for bs in binding_sites]
-        self.states = [0 for bs in binding_sites] #three states
-        self.binding_influence = [0 for bs in binding_sites]
-        self.span = 37 #influence span (Tanner 2007)
-        ## Kinetics from Tanner 2007 and Tanner Thesis
-        K1 = 1e5         # per mole Ca
-        K2 = 10          # unitless
-        K3 = 1e6         # unitless
-        k_12 = 5e5       # per mole Ca per sec
-        k_23 = 10        # per sec
-        k_31 = 5         # per sec
-        s_per_ms = 1e-3  # seconds per millisecond
-        k_12 *= s_per_ms # convert rates from 
-        k_23 *= s_per_ms # occurrences per second
-        k_31 *= s_per_ms # to occurrences per ms
-        self._K1, self._K2, self._K3 = K1, K2, K3
-        self._k_12, self._k_23, self._k_31 = k_12, k_23, k_31
-
-    @property
-    def timestep(self):
-        """Timestep size is stored at the half-sarcomere level"""
-        return self.parent_thin.parent_lattice.timestep_len
-
-    def to_dict(self):
-        """Create a JSON compatible representation of the tropomyosin chain
-
-        Usage example:json.dumps(tm.to_dict(), indent=1)
-
-        Current output includes:
-            address: largest to most local, indices for finding this
-            binding_sites: addresses of binding sites
-            rests: resting positions of each point along the chain
-            states: kinetic states of each point along the chain
-            binding_influence: what the state tells you
-            span: how far an activation spreads
-            _k_12 - _k_31: transition rates
-            _K1 - _K3: kinetic balances for reverse rates
-        """
-        tmd = self.__dict__.copy()
-        tmd['binding_sites'] = [bs.address for bs in tmd['binding_sites']]
-        return tmd
-
-    def from_dict(self, tmd):
-        """ Load values from a tropomyosin dict. Values read correspond to 
-        the current output documented in to_dict.
-        """
-        # Check for index mismatch
-        read, current = tuple(tmd['address']), self.address
-        assert read==current, "index mismatch at %s/%s"%(read, current)
-        # Local keys
-        self.binding_sites = [
-            self.parent_thin.parent_lattice.resolve_address(bsa) 
-            for bsa in tmd['binding_sites']]
-        self.rests = tmd['rests']
-        self.states = tmd['states']
-        self.binding_influence = tmd['binding_influence']
-        self.span = tmd['span']
-        self._k_12 = tmd['_k_12'] 
-        self._k_23 = tmd['_k_23']
-        self._k_31 = tmd['_k_31']
-        self._K1 = tmd['_K1']
-        self._K2 = tmd['_K2']
-        self._K3 = tmd['_K3']
-
-    @property
-    def pCa(self):
-        """pCa stored at the half-sarcomere level"""
-        pCa = self.parent_thin.parent_lattice.pCa 
-        assert pCa>0, "pCa must be given in positive units by convention"
-        return pCa
-
-    @property
-    def ca(self):
-        """The calcium concentration stored at the half-sarcomere level"""
-        Ca = 10.0**(-self.pCa)
-        return Ca
-
-    def _link_binding_sites(self):
-        """Establish links to binding sites
-        This is done such that each binding site knows what tropomyosin chain 
-        it is attached to and what its index is on that chain for the purpose 
-        of looking up the effects of tropomyosin on binding at that site
-        location. 
-        """
-        for i, bs in enumerate(self.binding_sites):
-            bs.tropomyosin = (self, i)
-
-    def _r12(self):
-        """Rate of Ca and TnC association, conditional on [Ca]"""
-        forward = self._k_12 * self.ca
-        return forward
-
-    def _r21(self):
-        """Rate of Ca detachment from TnC, conditional on [Ca]"""
-        forward = self._r12()
-        reverse = forward / self._K1
-        return reverse
-
-    def _r23(self):
-        """Rate of TnI TnC association"""
-        forward = self._k_23
-        return forward
-
-    def _r32(self):
-        """Rate of TnI TnC detachment"""
-        forward = self._r23()
-        reverse = forward / self._K2
-        return reverse
-
-    def _r31(self):
-        """Rate of Ca disassociation induced TnI TnC disassociation
-        TODO: figure out calcium dependence
-        """
-        forward = self._k_31 
-        return forward
-
-    def _r13(self):
-        """Rate of simultaneous Ca binding and TnI TnC association.
-        Should be quite low. 
-        TODO: figure out calcium dependence
-        """
-        forward = self._r31()
-        reverse = forward / self._K3
-        return reverse
-
-    def _prob(self, rate):
-        """ Convert a rate to a probability, based on the current timestep
-        length and the assumption that the rate is for a Poisson process.
-        We are asking, what is the probability that at least one Poisson
-        distributed value would occur during the timestep.
-
-        Parameters
-        ----------
-            rate: float
-                a per millisecond rate to convert to probability
-        Returns
-        -------
-            probability: float
-                the probability the event occurs during a timestep
-                of length determined by self.timestep
-        """
-        return 1 - np.exp(-rate*self.timestep)
-
-    @staticmethod
-    def _forward_backward(forward_p, backward_p, rand):
-        """Transition forward or backward based on random variable, return
-        "forward", "backward", or "none"
-        """
-        if rand<forward_p:
-            return "forward"
-        elif rand>(1-backward_p):
-            return "backward"
-        return "none"
-
-    def _site_trans(self, state):
-        """ Transition from one state to the next, or back, or don't """
-        rand = np.random.random()
-        if state==0:
-            f, b = self._prob(self._r12()), self._prob(self._r13())
-            trans_word = self._forward_backward(f, b, rand)
-            return {"forward":1, "backward":2, "none":0}[trans_word]
-        elif state==1:
-            f, b = self._prob(self._r23()), self._prob(self._r21())
-            trans_word = self._forward_backward(f, b, rand)
-            return {"forward":2, "backward":0, "none":1}[trans_word]
-        elif state==2:
-            f, b = self._prob(self._r31()), self._prob(self._r32())
-            trans_word = self._forward_backward(f, b, rand)
-            return {"forward":0, "backward":1, "none":2}[trans_word]
-        assert state in (0,1,2), "Tropomyosin state has invalid value"
-        return
-
-    def _within_span(self, axial_location):
-        """Return tm site indices that are within the cooperative
-        activation span from a passed axial_location
-        """
-        within_span = []
-        for i, bs in enumerate(self.binding_sites):
-            if abs(bs.axial_location - axial_location)<=self.span:
-                within_span.append(i)
-        return within_span
-
-    def _spread_activation(self):
-        """"Spread activation along the filament"""
-        # Which sites are close enough to each site to warrant spreading
-        close_enough = [self._within_span(bs.axial_location) 
-                        for bs in self.binding_sites]
-        # Spread activation to adjacent sites if origin is 2 and adjacent site
-        # isn't 2 (can be 0 or 1, will be set to 1)
-        for origin, sites in enumerate(close_enough):
-            if self.states[origin] == 2:
-                for spread_ind in sites:
-                    if self.states[spread_ind] != 2:
-                        self.states[spread_ind] = 1
-        return
-
-    def transition(self):
-        """Chunk through all binding sites, transition if need be, 
-        recalculate the binding influence
-        """
-        self.states = [self._site_trans(s) for s in self.states]
-        # Simplifying assumption: each site is within exactly one span
-        min_one_span = max(np.diff(self.rests))<self.span 
-        max_one_span = min(np.diff(self.rests))>0.5*self.span
-        error_string = "transition convolution assumption violation"
-        assert min_one_span and max_one_span, error_string
-        # Spread activation
-        self._spread_activation()
-        # Translate state to binding influence
-        self.binding_influence = [{0:0, 1:0, 2:1}[s] for s in self.states]
-        return 
-
-
 class ThinFilament:
     """Each thin filament is made up of two actin strands.  The overall
     filament length at rest is 1119 nm [Tanner2007].  Each strand
@@ -687,8 +426,8 @@ class ThinFilament:
         for bs, ax in zip(self.binding_sites, axial_flat):
             mono_index = monomer_positions.index(ax)
             bs_by_two_start[mono_index%2].append(bs)
-        self.tm = [Tropomyosin(self, bs_chain, ind) for ind, bs_chain in
-                   enumerate(bs_by_two_start)]
+        self.tm = [tm.Tropomyosin(self, bs_chain, ind) for 
+                   ind, bs_chain in enumerate(bs_by_two_start)]
         # Other thin filament properties to remember
         self.number_of_nodes = len(self.binding_sites)
         self.thick_faces = None # Set after creation of thick filaments
@@ -743,7 +482,8 @@ class ThinFilament:
 
     def resolve_address(self, address):
         """Give back a link to the object specified in the address
-        We should only see addresses starting with 'thin_face' or 'bs'
+        We should only see addresses starting with 'thin_face', 'bs', 
+        'tropomyosin', or 'tm_site'
         """
         if address[0] == 'thin_face':
             return self.thin_faces[address[2]]
@@ -751,6 +491,8 @@ class ThinFilament:
             return self.binding_sites[address[2]]
         elif address[0] == 'tropomyosin':
             return self.tm[address[2]]
+        elif address[0] == 'tm_site':
+            return self.tm[address[2]].resolve_address(address)
         import warnings
         warnings.warn("Unresolvable address: %s"%address)
 
@@ -819,6 +561,10 @@ class ThinFilament:
         binding_sites = self.axial_force_of_each_node(axial_locations)
         # Return the combination of the two
         return np.add(thin, binding_sites)
+
+    def transition(self):
+        """Give self, (well, TMs really) a chance to transition states"""
+        return [tm.transition() for tm in self.tm]
 
     def settle(self, factor):
         """Reduce the total axial force on the system by moving the sites"""
