@@ -494,7 +494,7 @@ class ThinFilament:
         elif address[0] == 'tm_site':
             return self.tm[address[2]].resolve_address(address)
         import warnings
-        warnings.warn("Unresolvable address: %s"%address)
+        warnings.warn("Unresolvable address: %s"%str(address))
 
     def set_thick_faces(self, thick_faces):
         """Set the adjacent thick faces and associated values

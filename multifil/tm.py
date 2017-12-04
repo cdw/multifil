@@ -299,7 +299,7 @@ class Tropomyosin:
         if address[0] == 'tm_site':
             return self.sites[address[3]]
         import warnings
-        warnings.warn("Unresolvable address: %s"%address)
+        warnings.warn("Unresolvable address: %s"%str(address))
 
     @property
     def states(self):

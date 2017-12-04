@@ -567,7 +567,7 @@ class hs:
         elif address[0] in ['crown', 'thick_face', 'xb']:
             return self.thick[address[1]].resolve_address(address)
         import warnings
-        warnings.warn("Unresolvable address: %s"%address)
+        warnings.warn("Unresolvable address: %s"%str(address))
 
     def display_axial_force_end(self):
         """ Show an end view with axial forces of face pairs

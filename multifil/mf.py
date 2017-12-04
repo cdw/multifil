@@ -242,7 +242,7 @@ class ThickFace:
         if address[0] == 'xb':
             return self.xb_by_crown[address[3]]
         import warnings
-        warnings.warn("Unresolvable address: %s"%address)
+        warnings.warn("Unresolvable address: %s"%str(address))
 
     def axialforce(self):
         """Return the total axial force of the face's cross-bridges"""
@@ -507,7 +507,7 @@ class ThickFilament:
         elif address[0] == 'xb':
             return self.thick_faces[address[2]].resolve_address(address)
         import warnings
-        warnings.warn("Unresolvable address: %s"%address)
+        warnings.warn("Unresolvable address: %s"%str(address))
 
     def effective_axial_force(self):
         """Get the axial force generated at the M-line
