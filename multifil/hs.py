@@ -354,6 +354,7 @@ class hs:
             self.current_timestep += 1
         # Update bound states
         self.last_transitions = [thick.transition() for thick in self.thick]
+        _ = [thin.transition() for thin in self.thin] # TODO: work into storage
         # Settle forces
         self.settle()
 
