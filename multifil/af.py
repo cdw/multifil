@@ -510,6 +510,30 @@ class Tropomyosin:
         assert state in (0,1,2), "Tropomyosin state has invalid value"
         return
 
+    def _within_span(self, axial_location):
+        """Return tm site indices that are within the cooperative
+        activation span from a passed axial_location
+        """
+        within_span = []
+        for i, bs in enumerate(self.binding_sites):
+            if abs(bs.axial_location - axial_location)<=self.span:
+                within_span.append(i)
+        return within_span
+
+    def _spread_activation(self):
+        """"Spread activation along the filament"""
+        # Which sites are close enough to each site to warrant spreading
+        close_enough = [self._within_span(bs.axial_location) 
+                        for bs in self.binding_sites]
+        # Spread activation to adjacent sites if origin is 2 and adjacent site
+        # isn't 2 (can be 0 or 1, will be set to 1)
+        for origin, sites in enumerate(close_enough):
+            if self.states[origin] == 2:
+                for spread_ind in sites:
+                    if self.states[spread_ind] != 2:
+                        self.states[spread_ind] = 1
+        return
+
     def transition(self):
         """Chunk through all binding sites, transition if need be, 
         recalculate the binding influence
@@ -520,16 +544,8 @@ class Tropomyosin:
         max_one_span = min(np.diff(self.rests))>0.5*self.span
         error_string = "transition convolution assumption violation"
         assert min_one_span and max_one_span, error_string
-        # Spread activation to adjacent sites
-        if self.states[0] == 0 and self.states[1] == 2:
-            self.states[0] = 1
-        for i, s in enumerate(self.states):
-            if i>0 and i<len(self.states)-1:
-                if s == 0:
-                    if self.states[i-1]==2 or self.states[i+1]==2:
-                        self.states[i] = 1
-        if self.states[-1] == 0 and self.states[-2] ==2:
-            self.states[-1] = 1
+        # Spread activation
+        self._spread_activation()
         # Translate state to binding influence
         self.binding_influence = [{0:0, 1:0, 2:1}[s] for s in self.states]
         return 
