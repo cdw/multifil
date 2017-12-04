@@ -264,7 +264,6 @@ class Tropomyosin:
                       enumerate(binding_sites)]
         self.span = 37 #influence span (Tanner 2007)
 
-
     def to_dict(self):
         """Create a JSON compatible representation of the tropomyosin chain
 
