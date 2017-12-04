@@ -301,6 +301,11 @@ class Tropomyosin:
         import warnings
         warnings.warn("Unresolvable address: %s"%address)
 
+    @property
+    def states(self):
+        """States of the contained TmSites (for monitoring)"""
+        return [site.state for site in self.sites]
+
     def transition(self):
         """Chunk through all binding sites, transition if need be"""
         for site in self.sites:
