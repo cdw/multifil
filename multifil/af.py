@@ -455,6 +455,7 @@ class ThinFilament:
         thind['rests'] = list(thind['rests'])
         thind['binding_sites'] = [bs.to_dict() for bs in \
                                   thind['binding_sites']]
+        thind['tm'] = [tm.to_dict() for tm in thind['tm']]
         return thind
 
     def from_dict(self, td):
