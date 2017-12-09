@@ -560,7 +560,7 @@ class hs:
         """
         if address[0] == 'thin_fil':
             return self.thin[address[1]]
-        elif address[0] in ['thin_face', 'bs']:
+        elif address[0] in ['thin_face', 'bs', 'tm', 'tm_site']:
             return self.thin[address[1]].resolve_address(address)
         elif address[0] == 'thick_fil':
             return self.thick[address[1]]
