@@ -105,25 +105,26 @@ class TmSite:
         tmsd['binding_site'] = tmsd['binding_site'].address
         return tmsd
 
-    def from_dict(self, tmd):
-        """ Load values from a tropomyosin site dict. Values read 
-        correspond to the current output documented in to_dict.
+    def from_dict(self, tmsd):
+        """ Load values from a tropomyosin site dict. 
+        
+        Values read correspond to output documented in :to_dict:.
         """
         # Check for index mismatch
-        read, current = tuple(tmd['address']), self.address
+        read, current = tuple(tmsd['address']), self.address
         assert read==current, "index mismatch at %s/%s"%(read, current)
         # Local/remote keys
         self.binding_site = self.parent_tm.parent_thin.parent_lattice.\
-                resolve_address(tmd['binding_site']) 
+                resolve_address(tmsd['binding_site']) 
         self.binding_site.tm_site = self
         # Local keys
-        self.state = tmd['_state']
-        self._k_12 = tmd['_k_12'] 
-        self._k_23 = tmd['_k_23']
-        self._k_31 = tmd['_k_31']
-        self._K1 = tmd['_K1']
-        self._K2 = tmd['_K2']
-        self._K3 = tmd['_K3']
+        self.state = tmsd['_state']
+        self._k_12 = tmsd['_k_12'] 
+        self._k_23 = tmsd['_k_23']
+        self._k_31 = tmsd['_k_31']
+        self._K1 = tmsd['_K1']
+        self._K2 = tmsd['_K2']
+        self._K3 = tmsd['_K3']
         return
 
     @property
