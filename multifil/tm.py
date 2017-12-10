@@ -262,7 +262,12 @@ class Tropomyosin:
         ## What is your population?
         self.sites = [TmSite(self, bs, ind) for ind, bs in
                       enumerate(binding_sites)]
-        self.span = 37 #influence span (Tanner 2007)
+        ## How does activation spread?
+        self.span_base = 37  # influence span (Tanner 2007)
+        self.span_base *= 1.2  # influence span increase 
+        self.span_steep = 1  # how steep the influence curve is
+        self.span_force50 = -20 # force at which span is decreased by half
+        self.span = self.span_base  # just to start
 
     def to_dict(self):
         """Create a JSON compatible representation of the tropomyosin chain
@@ -312,6 +317,7 @@ class Tropomyosin:
             site.transition()
         # Spread activation
         self._spread_activation()
+        self._update_span()
 
     def _spread_activation(self):
         """"Spread activation along the filament"""
@@ -329,6 +335,28 @@ class Tropomyosin:
                 for site in near:
                     if site.state != 2:
                         site.state = 1
+        return
+
+    def _update_span(self):
+        """Update the span of activation spread 
+        
+        The span (state 2 coercion of adjacent sites to state 1 from 
+        state 0) is based on the current force felt by the thin filament 
+        on which the tropomyosin chain is located.
+
+        Notes
+        -----
+        The functional form of the span is determined by:
+            $$span = 0.5 * base (1 + tanh(steep*(force50 + f)))$$
+        Where $span$ is the actual span, $base$ is the resting (no force) 
+        span distance, $steep$ is how steep the decrease in span is, 
+        $force50$ is the force at which the span has decreased by half, and 
+        f is the current effective axial force of the thin filament, an 
+        estimate of the tension along the thin filament. 
+        """
+        f = self.parent_thin.effective_axial_force()
+        base, steep, f50 = self.span_base, self.span_steep, self.span_force50
+        self.span = 0.5 * base * (1 - np.tanh(steep * (f50 + f)))
         return
 
 
