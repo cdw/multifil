@@ -11,11 +11,14 @@ Created by Dave Williams on 2017-12-03.
 import numpy as np
 
 class TmSite:
-    """A single tm site, located over a single actin binding site. This keeps
-    track of how the tropomyosin chain is regulating the binding site: states,
-    links to nearest neighbors, etc
+    """A single tm site, located over a single actin binding site. 
+    
+    Individual tm sites keep track of how the tropomyosin chain is regulating
+    the binding site: states, links to nearest neighbors, etc
 
-    # Kinetics
+    Kinetics
+    --------
+
     The equilibrium state of a transition, K, is given by the ratio of forward
     to reverse transition rates, K = k_forward/k_reverse. Taking our kinetics
     from Tanner 2007 we define the three equilibrium states and their attendant
@@ -35,12 +38,18 @@ class TmSite:
    
     No rates include a temperature dependence. 
     """
+
     def __init__(self, parent_tm, binding_site, index):
-        """
-        Parameters:
-            parent_tm: the tropomyosin chain on which this site is located
-            binding_site: the binding site this tm site regulates
-            index: where this tm site is along the tm chain
+        """ A single tropomyosin site, paired to a binding site
+
+        Parameters
+        ----------
+        parent_tm: tropomyosin class instance
+            the tropomyosin chain on which this site is located
+        binding_site: actin binding site class instance
+            the binding site this tm site regulates
+        index: int
+            where this tm site is along the tm chain
         """
         ## Who are you and where do you come from?
         self.parent_tm = parent_tm
@@ -66,7 +75,7 @@ class TmSite:
         self._k_12, self._k_23, self._k_31 = k_12, k_23, k_31
 
     def __str__(self):
-        """Representation of the tmsite"""
+        """Representation of the tmsite for printing"""
         out = "TmSite #%02i State:%i Loc:%04.0f"%(
             self.index, self.state, self.axial_location)
         return out
@@ -84,6 +93,11 @@ class TmSite:
             span: how far an activation spreads
             _k_12 - _k_31: transition rates
             _K1 - _K3: kinetic balances for reverse rates
+
+        Returns
+        -------
+        tmsd: dict
+            tropomyosin site dictionary
         """
         tmsd = self.__dict__.copy()
         tmsd.pop('parent_tm')
@@ -132,7 +146,7 @@ class TmSite:
 
     @property
     def axial_location(self):
-        """Return the axial location of the bs we are piggybacking on"""
+        """Axial location of the bs we are piggybacking on"""
         return self.binding_site.axial_location
 
     @property
@@ -239,21 +253,30 @@ class Tropomyosin:
     
     Tropomyosin stands in for both the Tm and the Tn. 
     
-    # Structure
+    Structure
+    ---------
+
     The arrangement of the tropomyosin on the thin filament is represented as
     having an ability to be calcium regulated at each binding site with the
     option to spread that calcium regulation to adjacent binding sites. I am
     only grudgingly accepting of this as a representation of the TmTn
     interaction structure, but it is a reasonable first pass. 
     """
+
     def __init__(self, parent_thin, binding_sites, index):
-        """Save the binding sites along a set of tropomyosin strands, 
+        """A strand of tropomyosin chains
+        
+        Save the binding sites along a set of tropomyosin strands, 
         in preparation for altering availability of binding sites. 
         
-        Parameters:
-            parent_thin: thin filament on which the tropomyosin lives
-            binding_sites: list of acting binding sites on this tm string
-            index: which tm chain this is on the thin filament
+        Parameters
+        ----------
+        parent_thin: thin filament instance
+            thin filament on which the tropomyosin lives
+        binding_sites: list of list of binding site instances
+            binding sites on this tm string
+        index: int
+            which tm chain this is on the thin filament
         """
         ## Who are you and where do you come from?
         self.parent_thin = parent_thin
