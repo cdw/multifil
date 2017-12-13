@@ -218,17 +218,20 @@ class ThinFace:
         hiding_line = self.parent_thin.hiding_line
         axial_location = max(hiding_line, axial_location)
         face_locs = [site.axial_location for site in self.binding_sites]
-        close_index = np.searchsorted(face_locs, axial_location)
-        # If not using a very short SL, where the end face loc is closest
-        if close_index != len(face_locs):
-            dists = np.abs((face_locs[close_index] - axial_location,
-                            face_locs[close_index-1] - axial_location))
+        next_index = np.searchsorted(face_locs, axial_location)
+        prev_index = next_index - 1
+        # If not using a very short SL, where the end face loc is closest, 
+        # then find distances to two closest locations
+        if next_index != len(face_locs):
+            dists = np.abs((face_locs[prev_index] - axial_location,
+                            face_locs[next_index] - axial_location))
         else:
-            return self.binding_sites[close_index-1] # If so, return end
+            return self.binding_sites[prev_index] # If at end, return end
+        # If prior site was closer, give it, else give next
         if dists[0] < dists[1]:
-            return self.binding_sites[close_index]
+            return self.binding_sites[prev_index]
         else:
-            return self.binding_sites[close_index + 1]
+            return self.binding_sites[next_index]
 
     def radialforce(self):
         """What is the radial force this face experiences?
