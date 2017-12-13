@@ -32,14 +32,14 @@ class hs:
                 availability, positive by convention (4.0)
             timestep_len: how many ms per timestep (1)
             time_dependence: a dictionary to override the initial lattice
-                spacing, sarcomere length, and actin permissiveness at each
+                spacing, sarcomere length, and pCa at each
                 timestep. Each key may contain a list of the values, to be
                 iterated over as timesteps proceed. The first entry in these
                 lists will override passed initial values. The valid keys
                 time_dependence can control are:
                     * "lattice_spacing"
                     * "z_line"
-                    * "actin_permissiveness"
+                    * "pCa"
             starts: starting polymer/orientation for thin/thick filaments in
                 form ((rand(0,25), ...), (rand(0,3), ...))
         Returns:
