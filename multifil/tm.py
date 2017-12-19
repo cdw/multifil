@@ -151,11 +151,6 @@ class TmSite:
         return self.binding_site.axial_location
 
     @property
-    def state(self):
-        """Get the current state of the tm site"""
-        return self._state
-
-    @property
     def span(self):
         """What is the span of cooperative activation for this tm site?
         
@@ -183,6 +178,10 @@ class TmSite:
         span = 0.5 * base * (1 - np.tanh(steep * (f50 + f)))
         return span
         
+    @property
+    def state(self):
+        """Get the current state of the tm site"""
+        return self._state
 
     @state.setter
     def state(self, new_state):
