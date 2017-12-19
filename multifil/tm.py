@@ -155,6 +155,35 @@ class TmSite:
         """Get the current state of the tm site"""
         return self._state
 
+    @property
+    def span(self):
+        """What is the span of cooperative activation for this tm site?
+        
+        The span (state 2 coercion of adjacent sites to state 1 from 
+        state 0) is based on the current tension at the binding site 
+        co-located under this tropomyosin site. 
+
+        Notes
+        -----
+        The functional form of the span is determined by:
+            $$span = 0.5 * base (1 + tanh(steep*(force50 + f)))$$
+        Where $span$ is the actual span, $base$ is the resting (no force) 
+        span distance, $steep$ is how steep the decrease in span is, 
+        $force50$ is the force at which the span has decreased by half, and 
+        f is the current effective axial force of the thin filament, an 
+        estimate of the tension along the thin filament. 
+
+        These properties are stored at the tropomyosin chain level as they 
+        are material properties of the entire chain.
+        """
+        base = self.parent_tm.span_base
+        steep = self.parent_tm.span_steep
+        f50 = self.parent_tm.span_force50
+        f = self.binding_site.tension
+        span = 0.5 * base * (1 - np.tanh(steep * (f50 + f)))
+        return span
+        
+
     @state.setter
     def state(self, new_state):
         """Set the state and thus the binding influence"""
@@ -286,12 +315,13 @@ class Tropomyosin:
         ## What is your population?
         self.sites = [TmSite(self, bs, ind) for ind, bs in
                       enumerate(binding_sites)]
-        ## How does activation spread?
+        ## How does activation spread? 
+        # Material properties belong to tm chain, but actual span is 
+        # calculated at the site level (where tension is experienced)
         self.span_base = 37  # influence span (Tanner 2007)
         self.span_base *= 1.2  # influence span increase 
         self.span_steep = 1  # how steep the influence curve is
         self.span_force50 = -20 # force at which span is decreased by half
-        self.span = self.span_base  # just to start
 
     def to_dict(self):
         """Create a JSON compatible representation of the tropomyosin chain
@@ -301,7 +331,6 @@ class Tropomyosin:
         Current output includes:
             address: largest to most local, indices for finding this
             sites: tm sites
-            span: how far an activation spreads
         """
         tmd = self.__dict__.copy()
         tmd.pop('parent_thin')
@@ -341,7 +370,6 @@ class Tropomyosin:
             site.transition()
         # Spread activation
         self._spread_activation()
-        self._update_span()
 
     def _spread_activation(self):
         """"Spread activation along the filament"""
@@ -354,33 +382,12 @@ class Tropomyosin:
         for site in self.sites:
             if site.state == 2:
                 loc = site.axial_location
-                near_inds = np.nonzero(np.abs(locs-loc)<self.span)[0]
+                span = site.span
+                near_inds = np.nonzero(np.abs(locs-loc)<span)[0]
                 near = [self.sites[index] for index in near_inds]
                 for site in near:
                     if site.state != 2:
                         site.state = 1
-        return
-
-    def _update_span(self):
-        """Update the span of activation spread 
-        
-        The span (state 2 coercion of adjacent sites to state 1 from 
-        state 0) is based on the current force felt by the thin filament 
-        on which the tropomyosin chain is located.
-
-        Notes
-        -----
-        The functional form of the span is determined by:
-            $$span = 0.5 * base (1 + tanh(steep*(force50 + f)))$$
-        Where $span$ is the actual span, $base$ is the resting (no force) 
-        span distance, $steep$ is how steep the decrease in span is, 
-        $force50$ is the force at which the span has decreased by half, and 
-        f is the current effective axial force of the thin filament, an 
-        estimate of the tension along the thin filament. 
-        """
-        f = self.parent_thin.effective_axial_force()
-        base, steep, f50 = self.span_base, self.span_steep, self.span_force50
-        self.span = 0.5 * base * (1 - np.tanh(steep * (f50 + f)))
         return
 
 
