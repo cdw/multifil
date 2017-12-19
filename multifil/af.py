@@ -118,6 +118,11 @@ class BindingSite:
         self.bound_to = None
 
     @property
+    def tension(self):
+        """How much load the thin filament bears at this binding site"""
+        return self.parent_thin.tension_at_site(self.index)
+
+    @property
     def permissiveness(self):
         """What is your availability to bind, based on tropomyosin status?"""
         return self.tm_site.binding_influence
@@ -636,6 +641,29 @@ class ThinFilament:
         # Convert this to the force on each node
         net_force_on_each_binding_site = np.diff(spring_force)
         return net_force_on_each_binding_site
+
+    def tension_at_site(self, index):
+        """The net tension born by a given binding site
+
+        How much tension is a given binding site subject to? This is 
+        useful for tension-dependent binding site kinetics and was 
+        originally included to study force depression after shortening. 
+
+        Parameters
+        ----------
+        index: int
+            The binding site of interest
+
+        Returns
+        -------
+        tension: float
+        """
+        # Passed index is subject only to forces between it and the 
+        # m-line side of the thin filament
+        subject_to_forces = self._axial_thin_filament_forces()[index:]
+        tension = np.sum(subject_to_forces)
+        return tension
+
 
     def update_axial_locations(self, flat_axial_locs):
         """Update the axial locations to the passed ones
