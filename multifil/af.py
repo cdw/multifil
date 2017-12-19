@@ -531,12 +531,12 @@ class ThinFilament:
         return (self.rests[-1] - (self.z_line - self.axial[-1])) * self.k
 
     def axial_force_of_each_node(self, axial_locations=None):
-        """Return a list of the thin filament axial force at each node
+        """Return a list of the XB derived axial force at each node
 
         Parameters:
             axial_locations: location of each node (optional)
         Returns:
-            axial_forces: a list of the axial force at each node
+            axial_forces: a list of the XB axial force at each node
         """
         if axial_locations == None:
             axial_forces = [site.axialforce() for site in self.binding_sites]
@@ -583,7 +583,7 @@ class ThinFilament:
         return forces
 
     def radial_force_of_each_node(self):
-        """The radial force produced at each binding site node
+        """Radial force produced by XBs at each binding site node
 
         Parameters:
             None
