@@ -180,7 +180,12 @@ class TmSite:
         
     @property
     def state(self):
-        """Get the current state of the tm site"""
+        """Get the current state of the tm site
+        
+        Here states are given numerically for convenience. States 0, 1, 
+        and 2 correspond to states B, C, and M respectively (or blocked, 
+        closed, and myosin in prior terminology). 
+        """
         return self._state
 
     @state.setter
