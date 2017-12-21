@@ -60,7 +60,7 @@ class TmSite:
         self.binding_site = binding_site
         self.binding_site.tm_site = self
         self.state = 0
-        ## Kinetics from Tanner 2007 and Tanner Thesis
+        ## Kinetics from Tanner 2007, 2012, and thesis
         K1 = 1e5         # per mole Ca
         K2 = 10          # unitless
         K3 = 1e6         # unitless
@@ -71,8 +71,10 @@ class TmSite:
         k_12 *= s_per_ms # convert rates from 
         k_23 *= s_per_ms # occurrences per second
         k_31 *= s_per_ms # to occurrences per ms
+        coop = 100       # cooperative multiplier
         self._K1, self._K2, self._K3 = K1, K2, K3
         self._k_12, self._k_23, self._k_31 = k_12, k_23, k_31
+        self._coop = coop
 
     def __str__(self):
         """Representation of the tmsite for printing"""
@@ -125,6 +127,7 @@ class TmSite:
         self._K1 = tmsd['_K1']
         self._K2 = tmsd['_K2']
         self._K3 = tmsd['_K3']
+        self._coop = tmsd['_coop']
         return
 
     @property
@@ -177,7 +180,19 @@ class TmSite:
         f = self.binding_site.tension
         span = 0.5 * base * (1 - np.tanh(steep * (f50 + f)))
         return span
-        
+
+    @property
+    def subject_to_cooperativity(self):
+        """True if another TMS, within span, is in state 3"""
+        # Set up
+        site_loc = self.axial_location
+        parent_locs = self.parent_tm.axial_locations 
+        span = self.span
+        # Find within span and check state
+        near_inds = np.nonzero(np.abs(parent_locs - site_loc) < span)[0]
+        states = [self.parent_tm.sites[i].state for i in near_inds]
+        return any([state==2 for state in states])
+
     @property
     def state(self):
         """Get the current state of the tm site
@@ -196,7 +211,8 @@ class TmSite:
 
     def _r12(self):
         """Rate of Ca and TnC association, conditional on [Ca]"""
-        forward = self._k_12 * self.ca
+        coop = self._coop if self.subject_to_cooperativity else 1
+        forward = self._k_12 * self.ca * coop
         return forward
 
     def _r21(self):
@@ -207,7 +223,8 @@ class TmSite:
 
     def _r23(self):
         """Rate of TnI TnC association"""
-        forward = self._k_23
+        coop = self._coop if self.subject_to_cooperativity else 1
+        forward = self._k_23 * coop
         return forward
 
     def _r32(self):
@@ -322,10 +339,9 @@ class Tropomyosin:
         ## How does activation spread? 
         # Material properties belong to tm chain, but actual span is 
         # calculated at the site level (where tension is experienced)
-        self.span_base = 37  # influence span (Tanner 2007)
-        self.span_base *= 1.2  # influence span increase 
+        self.span_base = 62  # 11 g-actin influence span (Tanner 2012)
         self.span_steep = 1  # how steep the influence curve is
-        self.span_force50 = -20 # force at which span is decreased by half
+        self.span_force50 = -8 # force at which span is decreased by half
 
     def to_dict(self):
         """Create a JSON compatible representation of the tropomyosin chain
