@@ -364,6 +364,11 @@ class Tropomyosin:
         warnings.warn("Unresolvable address: %s"%str(address))
 
     @property
+    def axial_locations(self):
+        """Axial location of each Tm site"""
+        return np.array([site.axial_location for site in self.sites])
+
+    @property
     def states(self):
         """States of the contained TmSites (for monitoring)"""
         return [site.state for site in self.sites]
@@ -381,7 +386,7 @@ class Tropomyosin:
         if max([site.state for site in self.sites])<2:
             return
         # Find all my axial locations
-        locs = np.array([site.axial_location for site in self.sites])
+        locs = self.axial_locations
         # Chunk through each site
         for site in self.sites:
             if site.state == 2:
