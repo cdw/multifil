@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/cdw/multifil.svg?branch=master)](https://travis-ci.org/cdw/multifil)
+
 # multifil - a simulation of a half sarcomere
 
 To install, in the top level directory of a local copy of this repository:
