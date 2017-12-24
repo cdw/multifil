@@ -334,7 +334,7 @@ class ThinFilament:
     value of a monomer's index in the initial list of monomers. 
 
     [Tanner2007]:http://dx.doi.org/10.1371/journal.pcbi.0030115
-    [Squire2981]:http://dx.doi.org/10.1007/978-1-4613-3183-4
+    [Squire1981]:http://dx.doi.org/10.1007/978-1-4613-3183-4
     [Gunning2015]:http://dx.doi.org/10.1242/jcs.172502
     """
     def __init__(self, parent_lattice, index, face_orientations, start=0):
