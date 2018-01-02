@@ -87,10 +87,10 @@ class manage:
         none_if_list = lambda s: None if type(meta[s]) is list else meta[s]
         lattice_spacing = none_if_list('lattice_spacing')
         z_line = none_if_list('z_line')
-        actin_permissiveness = none_if_list('actin_permissiveness')
+        pCa = none_if_list('pCa')
         # Time dependent values
         time_dep_dict = {}
-        for prop in ['z_line', 'actin_permissiveness']:
+        for prop in ['z_line', 'pCa']:
             if type(meta[prop]) is list:
                 time_dep_dict[prop] = meta[prop]
         # Instantiate sarcomere
@@ -98,7 +98,7 @@ class manage:
             lattice_spacing = lattice_spacing,
             z_line = z_line,
             poisson = meta['poisson_ratio'],
-            actin_permissiveness = actin_permissiveness,
+            pCa = pCa,
             timestep_len = meta['timestep_length'],
             time_dependence = time_dep_dict,
             )
@@ -241,7 +241,7 @@ class data_file:
             'xb_trans_32': [],
             'xb_trans_13': [],
             'xb_trans_static': [],
-            'actin_permissiveness': [],
+            'pCa': [],
             'thick_displace_mean': [],
             'thick_displace_max': [],
             'thick_displace_min': [],
@@ -263,7 +263,6 @@ class data_file:
         radial_force = self.sarc.radialforce()
         xb_fracs = self.sarc.get_frac_in_states()
         xb_trans = sum(sum(self.sarc.last_transitions,[]),[])
-        act_perm = np.mean(self.sarc.actin_permissiveness)
         thick_d = np.hstack([t.displacement_per_crown()
                              for t in self.sarc.thick])
         thin_d = np.hstack([t.displacement_per_node()
@@ -286,7 +285,7 @@ class data_file:
         ad('xb_trans_32', xb_trans.count('32'))
         ad('xb_trans_13', xb_trans.count('13'))
         ad('xb_trans_static', xb_trans.count(None))
-        ad('actin_permissiveness', act_perm)
+        ad('pCa', self.sarc.pCa)
         ad('thick_displace_mean', np.mean(thick_d))
         ad('thick_displace_max', np.max(thick_d))
         ad('thick_displace_min', np.min(thick_d))
