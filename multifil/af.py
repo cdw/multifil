@@ -326,6 +326,18 @@ class ThinFilament:
     are numbered from low at the left to high on the right. Thus the 90th
     node is adjacent to the Z-line.
 
+    ## Filament stiffness
+
+    We draw a thin filament stiffness of 1743 pN/nm from [Daniel1998] 
+    which in turn extrapolates it from [Kojima1994]. It is worth noting
+    that this value is derived from Kojima's work, which directly measured
+    the longitudinal stiffness of a 1 micron length of thin filament, 
+    stabilized with phalloidin and with tropomyosin attached, as 
+    65+-6 pN/nm. Daniel's work extrapolates this to a local (between 
+    binding site) stiffness of 1743 pN/nm based on the observation that 
+    there is 37.3 nm between binding sites:
+        (65pN/nm)/(1 micron) * (1000nm/micron)/(37.3nm) = 1734pN/nm
+
     ## Tropomyosin tracks
     While the filament is modeled as a one-start helix, as described in 
     [Squire1981], chains of tropomyosin polymers follow the more gently
@@ -335,6 +347,7 @@ class ThinFilament:
 
     [Tanner2007]:http://dx.doi.org/10.1371/journal.pcbi.0030115
     [Squire1981]:http://dx.doi.org/10.1007/978-1-4613-3183-4
+    [Daniel1998]:http://dx.doi.org/10.1016/S0006-3495(98)77875-0
     [Gunning2015]:http://dx.doi.org/10.1242/jcs.172502
     """
     def __init__(self, parent_lattice, index, face_orientations, start=0):
@@ -438,7 +451,7 @@ class ThinFilament:
         # Other thin filament properties to remember
         self.number_of_nodes = len(self.binding_sites)
         self.thick_faces = None # Set after creation of thick filaments
-        self.k = 1743
+        self.k = 1743  # pN/nm
 
     def to_dict(self):
         """Create a JSON compatible representation of the thin filament
