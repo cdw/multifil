@@ -3,8 +3,8 @@
 """
 metas.py - create the meta file that will configure a run
 
-This was originally included in the run.py file, but has grown compliated
-enough to warrent the creation of a fully separate management system
+This was originally included in the run.py file, but has grown complicated
+enough to warrant the creation of a fully separate management system
 
 metas.emit produces a meta file that describes what we want a run to do: the
 values of the z_line, lattice spacing, and actin permissiveness through the run
