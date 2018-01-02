@@ -9,7 +9,7 @@ produced by setup_run.emit and uses it to configure a sarcomere
 
 run.sarc_file manages recording of complete sarcomere logs to a local file
 
-run.data_file manages recording abreviated data logs to a local file
+run.data_file manages recording abbreviated data logs to a local file
 
 run.s3 maintains a persistant s3 connection through all of this
 
