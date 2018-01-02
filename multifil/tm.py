@@ -178,13 +178,22 @@ class TmSite:
             self._latest_tension = np.sum(self._tension_coeffs*self._tension)
         return self._latest_tension
 
+    @property
+    def tension_inhibition(self):
+        """Inhibit forward kinetics under strain
+
+        See span for functional form documentation
+        """
+        steep = self.parent_tm.kinetics_inhibition_steep
+        f50 = self.parent_tm.force50
+        f = self.tension
+        inhibition = 0.5 * (1 - np.tanh(steep * (f50 + f)))
+        return inhibition
+
+    @property
     def span(self):
         """What is the span of cooperative activation for this tm site?
-        
-        The span (state 2 coercion of adjacent sites to state 1 from 
-        state 0) is based on the current tension at the binding site 
-        co-located under this tropomyosin site. 
-
+       
         Notes
         -----
         The functional form of the span is determined by:
@@ -200,7 +209,7 @@ class TmSite:
         """
         base = self.parent_tm.span_base
         steep = self.parent_tm.span_steep
-        f50 = self.parent_tm.span_force50
+        f50 = self.parent_tm.force50
         f = self.tension
         span = 0.5 * base * (1 - np.tanh(steep * (f50 + f)))
         return span
@@ -236,25 +245,29 @@ class TmSite:
     def _r12(self):
         """Rate of Ca and TnC association, conditional on [Ca]"""
         coop = self._coop if self.subject_to_cooperativity else 1
-        forward = self._k_12 * self.ca * coop
+        forward = self._k_12 * self.ca * coop * self.tension_inhibition
         return forward
 
     def _r21(self):
         """Rate of Ca detachment from TnC, conditional on [Ca]"""
-        forward = self._r12()
-        reverse = forward / self._K1
+        #forward = self._k_12 * self.ca 
+        #reverse = forward / self._K1
+        #reverse = forward / (self._K1 * self.tension_inhibition)
+        reverse = 50 * 1e-3 #tanner 2012, table 3
         return reverse
 
     def _r23(self):
         """Rate of TnI TnC association"""
         coop = self._coop if self.subject_to_cooperativity else 1
-        forward = self._k_23 * coop
+        forward = self._k_23 * coop * self.tension_inhibition
         return forward
 
     def _r32(self):
         """Rate of TnI TnC detachment"""
-        forward = self._r23()
-        reverse = forward / self._K2
+        #forward = self._k_23
+        #reverse = forward / self._K2
+        #reverse = forward / (self._K2 * self.tension_inhibition)
+        reverse = 10 * 1e-3 #tanner 2012, table 3
         return reverse
 
     def _r31(self):
@@ -365,9 +378,11 @@ class Tropomyosin:
         ## How does activation spread? 
         # Material properties belong to tm chain, but actual span is 
         # calculated at the site level (where tension is experienced)
-        self.span_base = 62  # 11 g-actin influence span (Tanner 2012)
-        self.span_steep = 1  # how steep the influence curve is
-        self.span_force50 = -8 # force at which span is decreased by half
+        #self.span_base = 62  # 11 g-actin influence span (Tanner 2012)
+        self.span_base = 37  # 7 g-actin influence span (1RU Tanner 2012)
+        self.span_steep = 0.5  # how steep the influence curve is
+        self.force50 = -2  # force where span and kinetics are cut in half
+        self.kinetics_inhibition_steep = 0.2  # same as for span
 
     def to_dict(self):
         """Create a JSON compatible representation of the tropomyosin chain
@@ -420,7 +435,7 @@ class Tropomyosin:
         for site in self.sites:
             site.transition()
         # Spread activation
-        self._spread_activation()
+        #self._spread_activation()
 
     def _spread_activation(self):
         """"Spread activation along the filament"""
