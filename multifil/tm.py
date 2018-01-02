@@ -75,6 +75,14 @@ class TmSite:
         self._K1, self._K2, self._K3 = K1, K2, K3
         self._k_12, self._k_23, self._k_31 = k_12, k_23, k_31
         self._coop = coop
+        ## Tension memory, setup to avoid recalculation
+        mem_len, smooth = 50, 0.99
+        self._tension = np.zeros(mem_len)
+        self._latest_tension = 0
+        self._last_tension_update = 0
+        self._tension_coeffs = np.exp(-np.linspace(1,0,mem_len)/smooth)
+        self._tension_coeffs /= np.sum(self._tension_coeffs)
+        
 
     def __str__(self):
         """Representation of the tmsite for printing"""
@@ -136,6 +144,11 @@ class TmSite:
         return self.parent_tm.parent_thin.parent_lattice.timestep_len
 
     @property
+    def current_timestep(self):
+        """Current timestep stored at sarcomere level"""
+        return self.parent_tm.parent_thin.parent_lattice.current_timestep
+
+    @property
     def pCa(self):
         """pCa stored at the half-sarcomere level"""
         pCa = self.parent_tm.parent_thin.parent_lattice.pCa 
@@ -154,6 +167,17 @@ class TmSite:
         return self.binding_site.axial_location
 
     @property
+    def tension(self):
+        """What is the tension felt, filtered over time"""
+        if self.current_timestep != self._last_tension_update:
+            self._last_tension_update = self.current_timestep
+            ## Update tension memory
+            self._tension = np.roll(self._tension, -1)
+            self._tension[-1] = self.binding_site.tension
+            ## Return exponentially filtered tension
+            self._latest_tension = np.sum(self._tension_coeffs*self._tension)
+        return self._latest_tension
+
     def span(self):
         """What is the span of cooperative activation for this tm site?
         
@@ -177,7 +201,7 @@ class TmSite:
         base = self.parent_tm.span_base
         steep = self.parent_tm.span_steep
         f50 = self.parent_tm.span_force50
-        f = self.binding_site.tension
+        f = self.tension
         span = 0.5 * base * (1 - np.tanh(steep * (f50 + f)))
         return span
 
@@ -280,6 +304,8 @@ class TmSite:
 
     def transition(self):
         """Transition from one state to the next, or back, or don't """
+        #Update tension
+        _ = self.tension
         rand = np.random.random()
         if self.state==0:
             f, b = self._prob(self._r12()), self._prob(self._r13())
