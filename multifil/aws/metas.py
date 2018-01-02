@@ -205,7 +205,7 @@ def emit(path_local, path_s3, time,  poisson=0.0, ls=None, z_line=None,
     rund['lattice_spacing'] = ls
     rund['z_line'] = z_line
     rund['pCa'] = pCa
-    rund['timestep_length'] = np.diff(time)[0]
+    rund['timestep_length'] = float(np.diff(time)[0])
     rund['timestep_number'] = len(time)
     ## Include kwargs
     for k in kwargs:
