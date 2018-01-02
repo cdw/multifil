@@ -660,7 +660,7 @@ class ThinFilament:
         """
         # Passed index is subject only to forces between it and the 
         # m-line side of the thin filament
-        subject_to_forces = self._axial_thin_filament_forces()[index:]
+        subject_to_forces = self._axial_thin_filament_forces()[:index]
         tension = np.sum(subject_to_forces)
         return tension
 
