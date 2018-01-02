@@ -61,10 +61,10 @@ class TmSite:
         self.binding_site.tm_site = self
         self.state = 0
         ## Kinetics from Tanner 2007, 2012, and thesis
-        K1 = 1e5         # per mole Ca
+        K1 = 1e4         # per mole Ca
         K2 = 10          # unitless
-        K3 = 1e6         # unitless
-        k_12 = 5e5       # per mole Ca per sec
+        K3 = 1e-4        # *[Ca]
+        k_12 = 5e4       # per mole Ca per sec
         k_23 = 10        # per sec
         k_31 = 5         # per sec
         s_per_ms = 1e-3  # seconds per millisecond
