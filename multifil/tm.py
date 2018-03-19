@@ -272,15 +272,13 @@ class TmSite:
 
     def _r31(self):
         """Rate of Ca disassociation induced TnI TnC disassociation
-        TODO: figure out calcium dependence
         """
-        forward = self._k_31 
+        forward = self._k_31 * self.ca
         return forward
 
     def _r13(self):
         """Rate of simultaneous Ca binding and TnI TnC association.
         Should be quite low. 
-        TODO: figure out calcium dependence
         """
         forward = self._r31()
         reverse = forward / self._K3
