@@ -16,6 +16,7 @@ import numpy as np
 import scipy.optimize as opt
 from . import af
 from . import mf
+from . import ti
 
 class hs:
     """The half-sarcomere and ways to manage it"""
@@ -249,6 +250,56 @@ class hs:
         self.actin_permissiveness = actin_permissiveness
         # Track how long we've been running
         self.current_timestep = 0
+        # Create the titin filaments and link them from thick
+        # faces to thin faces
+        # |--------------------------------------------------|
+        # |            Actin & titin around myosin           |
+        # |--------------------------------------------------|
+        # |           a1               a3                    |
+        # |                                                  |
+        # |  a0       t1      a2       t4       a0           |
+        # |       t0     t2        t3      t5                |
+        # |           M0               M1                    |
+        # |       t6     t8        t9      t11               |
+        # |  a4       t7      a6       t10      a4           |
+        # |                                                  |
+        # |           a5     t13       a7       t16      a5  |
+        # |               t12    t14        t15    t17       |
+        # |                   M2                M3           |
+        # |               t18    t20        t21    t23   a1  |
+        # |           a1      t19      a3       t22          |
+        # |                                                  |
+        # |                   a2                a0           |
+        # |--------------------------------------------------|
+        ## CHECK_JDP ## Link Thick filament to titin
+        ti_thick = lambda i, j: self.thick[i].thick_faces[j]
+        ti_thin = lambda i, j: self.thin[i].thin_faces[j]
+        self.titin = (
+            ti.Titin(self, 0, ti_thick(0, 0), ti_thin(0, 1)),
+            ti.Titin(self, 1, ti_thick(0, 1), ti_thin(1, 2)),
+            ti.Titin(self, 2, ti_thick(0, 2), ti_thin(2, 2)),
+            ti.Titin(self, 3, ti_thick(1, 0), ti_thin(2, 1)),
+            ti.Titin(self, 4, ti_thick(1, 1), ti_thin(3, 2)),
+            ti.Titin(self, 5, ti_thick(1, 2), ti_thin(0, 2)),
+            ti.Titin(self, 6, ti_thick(0, 5), ti_thin(4, 1)),
+            ti.Titin(self, 7, ti_thick(0, 4), ti_thin(5, 0)),
+            ti.Titin(self, 8, ti_thick(0, 3), ti_thin(6, 0)),
+            ti.Titin(self, 9, ti_thick(1, 5), ti_thin(6, 1)),
+            ti.Titin(self, 10, ti_thick(1, 4), ti_thin(7, 0)),
+            ti.Titin(self, 11, ti_thick(1, 3), ti_thin(4, 0)),
+            ti.Titin(self, 12, ti_thick(2, 0), ti_thin(5, 1)),
+            ti.Titin(self, 13, ti_thick(2, 1), ti_thin(6, 2)),
+            ti.Titin(self, 14, ti_thick(2, 2), ti_thin(7, 2)),
+            ti.Titin(self, 15, ti_thick(3, 0), ti_thin(7, 1)),
+            ti.Titin(self, 16, ti_thick(3, 1), ti_thin(4, 2)),
+            ti.Titin(self, 17, ti_thick(3, 2), ti_thin(5, 2)),
+            ti.Titin(self, 18, ti_thick(2, 5), ti_thin(1, 1)),
+            ti.Titin(self, 19, ti_thick(2, 4), ti_thin(2, 0)),
+            ti.Titin(self, 20, ti_thick(2, 3), ti_thin(3, 0)),
+            ti.Titin(self, 21, ti_thick(3, 5), ti_thin(3, 1)),
+            ti.Titin(self, 22, ti_thick(3, 4), ti_thin(0, 0)),
+            ti.Titin(self, 23, ti_thick(3, 3), ti_thin(1, 0)),
+        )
 
     def to_dict(self):
         """Create a JSON compatible representation of the thick filament
@@ -489,7 +540,8 @@ class hs:
 
     def radialforce(self):
         """The sum of the thick filaments' radial forces, as a (y,z) vector"""
-        return np.sum([t.radial_force_of_filament() for t in self.thick], 0)
+        return np.sum([t.radial_force_of_filament() for t in self.thick], 0)# + ...
+        #sum([titin.radialforce() for titin in self.titin]) #CHECK
 
     def _single_settle(self):
         """Settle down now, just a little bit"""
@@ -516,6 +568,25 @@ class hs:
         mash = np.hstack([thick_f, thin_f])
         return mash
 
+    def length_perturbation(self, dist=None, n=None):
+        """Get the force response of the half-sarcomere to a length perturbation"""
+        if dist is None:
+            dist = 0.2; #take length perturbation steps of 'dist' nm
+        if n is None:
+            n = 10; #take 'n' length perturbation steps.
+        response = [];
+        stiffness = [];
+        initial_force = self.axialforce()
+        initial_zline = self.z_line
+        for i in range(n):
+            self.z_line += dist
+            self.settle()
+            response.append(((i+1) * dist, self.axialforce() - initial_force))
+            stiffness.append((self.axialforce() - initial_force) / ((i+1) * dist))
+        self.z_line = initial_zline
+        self.settle()
+        return np.mean(stiffness)
+
     def get_frac_in_states(self):
         """Calculate the fraction of cross-bridges in each state"""
         nested = [t.get_states() for t in self.thick]
@@ -523,6 +594,12 @@ class hs:
         num_in_state = [xb_states.count(state) for state in range(3)]
         frac_in_state = [n/float(len(xb_states)) for n in num_in_state]
         return frac_in_state
+
+    #ADDED BY JDP ON 2017-Aug-21
+    def get_31_trans(self):
+        """Calculate the number of xb's that transition from state 3 to 1"""
+        xb_trans = sum(sum(self.last_transitions,[]),[])
+        return xb_trans.count('31')
 
     def update_ls_from_poisson_ratio(self):
         """Update the lattice spacing consistant with the poisson ratio,

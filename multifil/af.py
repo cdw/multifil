@@ -190,6 +190,10 @@ class ThinFace:
         self.binding_sites = [self.parent_thin.resolve_address(bsa) \
                               for bsa in tfd['binding_sites']]
 
+    def link_titin(self, titin_fil):
+        """Add a titin filament to this face"""
+        self.titin_fil = titin_fil
+
     def nearest(self, axial_location):
         """Where is the nearest binding site?
 
