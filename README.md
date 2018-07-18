@@ -1,4 +1,6 @@
 [![Build Status](https://travis-ci.org/cdw/multifil.svg?branch=master)](https://travis-ci.org/cdw/multifil)
+[![Documentation Status](https://readthedocs.org/projects/multifil/badge/?version=latest)](https://multifil.readthedocs.io/en/latest/?badge=latest)
+
 
 # multifil - a simulation of a half sarcomere
 
