@@ -343,7 +343,7 @@ class Head:
         self.alphaDG = 0.28 * -deltaG
         self.etaDG = 0.68 * -deltaG
         # The time-step, master of all time
-        self.timestep = 1 # ms
+        self._timestep = 1 # ms
 
     def transition(self, bs, ap):
         """Transition to a new state (or not)
@@ -665,6 +665,11 @@ class Crossbridge(Head):
         else:
             self.bound_to = self.parent_face.parent_filament.parent_lattice.\
                 resolve_address(xbd['bound_to'])
+
+    @property
+    def timestep(self):
+        """Timestep size is stored at the half-sarcomere level"""
+        return self.parent_face.parent_filament.parent_lattice.timestep_len
 
     def transition(self):
         """Gather the needed information and try a transition

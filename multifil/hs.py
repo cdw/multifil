@@ -9,11 +9,8 @@ Created by Dave Williams on 2009-12-31.
 import sys
 import os
 import multiprocessing as mp
-import unittest
 import time
-import ujson as json
 import numpy as np
-import scipy.optimize as opt
 from . import af
 from . import mf
 from . import ti
@@ -28,7 +25,7 @@ class hs:
         Parameters:
             lattice_spacing: the surface-to-surface distance (14.0)
             z_line: the length of the half-sarcomere (1250)
-            poisson: poisson ratio obeyed when z-line changes. Signficant
+            poisson: poisson ratio obeyed when z-line changes. Significant
                 values are:
                     * 0.5 - constant volume
                     * 0.0 - constant lattice spacing, default value
@@ -321,8 +318,6 @@ class hs:
             thin: the structures for the thin filaments
         """
         sd = self.__dict__.copy() # sarc dict
-        sd.pop('_timestep_len')
-        sd['timestep_len'] = self.timestep_len
         sd['current_timestep'] = self.current_timestep
         # set act_perm as mean since prop access returns values at every point
         sd['actin_permissiveness'] = np.mean(self.actin_permissiveness)
@@ -439,18 +434,6 @@ class hs:
         return
 
     @property
-    def timestep_len(self):
-        """Get the length of the time step in ms"""
-        return self._timestep_len
-
-    @timestep_len.setter
-    def timestep_len(self, new_ts_len):
-        """Set the length of the time step in ms"""
-        self._timestep_len = new_ts_len
-        [thick._set_timestep(self._timestep_len) for thick in self.thick]
-        return
-
-    @property
     def actin_permissiveness(self):
         """How active & open to binding, 0 to 1, are binding sites?"""
         return [thin.permissiveness for thin in self.thin]
@@ -543,10 +526,10 @@ class hs:
         return np.sum([t.radial_force_of_filament() for t in self.thick], 0)# + ...
         #sum([titin.radialforce() for titin in self.titin]) #CHECK
 
-    def _single_settle(self):
+    def _single_settle(self, factor=0.95):
         """Settle down now, just a little bit"""
-        thick = [thick.settle() for thick in self.thick]
-        thin = [thin.settle() for thin in self.thin]
+        thick = [thick.settle(factor) for thick in self.thick]
+        thin = [thin.settle(factor) for thin in self.thin]
         return np.max((np.max(np.abs(thick)), np.max(np.abs(thin))))
 
     def settle(self):
@@ -669,7 +652,7 @@ class hs:
         elif address[0] in ['crown', 'thick_face', 'xb']:
             return self.thick[address[1]].resolve_address(address)
         import warnings
-        warnings.warn("Unresolvable address: %s"%address)
+        warnings.warn("Unresolvable address: %s"%str(address))
 
     def display_axial_force_end(self):
         """ Show an end view with axial forces of face pairs

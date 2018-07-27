@@ -96,12 +96,6 @@ class Crown:
         """Do what it says on the tin"""
         return self.parent_thick.lattice_spacing
 
-    def _set_timestep(self, timestep):
-        """Set the length of time step used to calculate transitions"""
-        for xb in self.crossbridges:
-            if xb is not None:
-                xb.timestep = timestep
-
     @property
     def axial_location(self):
         """Do what it says on the tin, return this crown's axial location"""
@@ -253,7 +247,7 @@ class ThickFace:
         if address[0] == 'xb':
             return self.xb_by_crown[address[3]]
         import warnings
-        warnings.warn("Unresolvable address: %s"%address)
+        warnings.warn("Unresolvable address: %s"%str(address))
 
     def axialforce(self):
         """Return the total axial force of the face's cross-bridges"""
@@ -343,13 +337,14 @@ class ThickFilament:
         ..." repeating pattern.
 
         ## Crown spacing and thick filament length
-        Each half thick filament is 858 nm long and consists of 60 myosin
-        nodes and one node at the M-line [(2)][Tanner2007].  As each of the
-        myosin nodes is the location of a 3-myosin crown, each half-thick
-        filament will have 180 myosins, slightly more than the 150 present
-        in mammalian striated muscle [(2)][Tanner2007].  The M-line side of
-        the thick filament has an initial bare zone of from 80 nm
-        [(3)][Higuchi1995] to 58 nm [(2)][Tanner2007].
+        Omitting the bare zone, the crown-decorated region of a half thick-
+        filament is 858 nm long and consists of 60 myosin nodes and one node 
+        at the M-line [(2)][Tanner2007].  As each of the myosin nodes is a 
+        3-myosin crown, each half-thick filament will have 180 myosins, 
+        slightly more than the 150 present in mammalian striated muscle 
+        [(2)][Tanner2007].  The M-line side of the thick filament has an 
+        initial bare zone of from 80 nm [(3)][Higuchi1995] to 58 nm 
+        [(2)][Tanner2007]. We choose to use the 58nm value.
 
         The crowns are on a 43 nm repeat, with three crowns per repeat.
         This means that each crown will be spaced 43/3 = 14.3 nm apart.
@@ -518,7 +513,7 @@ class ThickFilament:
         elif address[0] == 'xb':
             return self.thick_faces[address[2]].resolve_address(address)
         import warnings
-        warnings.warn("Unresolvable address: %s"%address)
+        warnings.warn("Unresolvable address: %s"%str(address))
 
     def effective_axial_force(self):
         """Get the axial force generated at the M-line
@@ -563,12 +558,13 @@ class ThickFilament:
         # Return the combination of backbone and crown forces
         return np.add(thick, crown)
 
-    def settle(self):
+    def settle(self, factor):
         """Reduce the total axial force on the system by moving the crowns"""
         # Total axial force on each point
         forces = self.axialforce()
         # Individual displacements needed to balance force
-        isolated = 0.95*forces/self.k
+        isolated = factor*forces/self.k
+        isolated[-1] *= 2 # Last node has spring on only one side
         # Cumulative displacements
         cumulative = np.cumsum(isolated)
         # New axial locations
@@ -621,10 +617,6 @@ class ThickFilament:
     def get_axial_location(self, index):
         """Return the axial location at the given crown index"""
         return self.axial[index]
-
-    def _set_timestep(self, timestep):
-        """Set the length of time step used to calculate transitions"""
-        [crown._set_timestep(timestep) for crown in self.crowns]
 
     def get_states(self):
         """Return the numeric states (0,1,2) of each face's cross-bridges"""

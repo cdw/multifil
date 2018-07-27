@@ -214,17 +214,20 @@ class ThinFace:
         hiding_line = self.parent_thin.hiding_line
         axial_location = max(hiding_line, axial_location)
         face_locs = [site.axial_location for site in self.binding_sites]
-        close_index = np.searchsorted(face_locs, axial_location)
-        # If not using a very short SL, where the end face loc is closest
-        if close_index != len(face_locs):
-            dists = np.abs((face_locs[close_index] - axial_location,
-                            face_locs[close_index-1] - axial_location))
+        next_index = np.searchsorted(face_locs, axial_location)
+        prev_index = next_index - 1
+        # If not using a very short SL, where the end face loc is closest, 
+        # then find distances to two closest locations
+        if next_index != len(face_locs):
+            dists = np.abs((face_locs[prev_index] - axial_location,
+                            face_locs[next_index] - axial_location))
         else:
-            return self.binding_sites[close_index-1] # If so, return end
+            return self.binding_sites[prev_index] # If at end, return end
+        # If prior site was closer, give it, else give next
         if dists[0] < dists[1]:
-            return self.binding_sites[close_index]
+            return self.binding_sites[prev_index]
         else:
-            return self.binding_sites[close_index + 1]
+            return self.binding_sites[next_index]
 
     def radialforce(self):
         """What is the radial force this face experiences?
@@ -287,12 +290,12 @@ class ThinFace:
 
 class ThinFilament:
     """Each thin filament is made up of two actin strands.  The overall
-    filament length at rest is 1119 nm [(1)][Tanner2007].  Each strand
+    filament length at rest is 1119 nm [Tanner2007].  Each strand
     hosts 45 actin binding sites (or nodes) giving the whole filament
     90 actin nodes, plus one at the Z-line for accounting.
 
     These nodes are located every 24.8 nm on each actin strand and are
-    rotated by 120 degrees relative to the prior node [(1)][Tanner2007].
+    rotated by 120 degrees relative to the prior node [Tanner2007].
     This organization does not specify the relative offsets of the two
     filament's nodes.
 
@@ -313,6 +316,7 @@ class ThinFilament:
     As in the thick filament, the nodes/binding sites on the thin filament
     are numbered from low at the left to high on the right. Thus the 90th
     node is adjacent to the Z-line.
+    [Tanner2007]:http://dx.doi.org/10.1371/journal.pcbi.0030115
     """
     def __init__(self, parent_lattice, index, face_orientations, start=0):
         """Initialize the thin filament
@@ -464,7 +468,7 @@ class ThinFilament:
         elif address[0] == 'bs':
             return self.binding_sites[address[2]]
         import warnings
-        warnings.warn("Unresolvable address: %s"%address)
+        warnings.warn("Unresolvable address: %s"%str(address))
 
     def set_thick_faces(self, thick_faces):
         """Set the adjacent thick faces and associated values
@@ -498,12 +502,12 @@ class ThinFilament:
         return (self.rests[-1] - (self.z_line - self.axial[-1])) * self.k
 
     def axial_force_of_each_node(self, axial_locations=None):
-        """Return a list of the thin filament axial force at each node
+        """Return a list of the XB derived axial force at each node 
 
         Parameters:
             axial_locations: location of each node (optional)
         Returns:
-            axial_forces: a list of the axial force at each node
+            axial_forces: a list of the XB axial force at each node 
         """
         if axial_locations == None:
             axial_forces = [site.axialforce() for site in self.binding_sites]
@@ -532,12 +536,12 @@ class ThinFilament:
         # Return the combination of the two
         return np.add(thin, binding_sites)
 
-    def settle(self):
+    def settle(self, factor):
         """Reduce the total axial force on the system by moving the sites"""
         # Total axial force on each point
         forces = self.axialforce()
         # Individual displacements needed to balance force
-        isolated = 0.95*forces/self.k
+        isolated = factor*forces/self.k
         isolated[0] *= 2 # First node has spring on only one side
         # Cumulative displacements, working back from z-disk
         cumulative = np.flipud(np.cumsum(np.flipud(isolated)))
@@ -546,7 +550,7 @@ class ThinFilament:
         return forces
 
     def radial_force_of_each_node(self):
-        """The radial force produced at each binding site node
+        """Radial force produced by XBs at each binding site node 
 
         Parameters:
             None
