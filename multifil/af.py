@@ -173,6 +173,7 @@ class ThinFace:
         tfd.pop('parent_thin')
         tfd['thick_face'] = tfd['thick_face'].address
         tfd['binding_sites'] = [bs.address for bs in tfd['binding_sites']]
+        tfd['titin_fil'] = tfd['titin_fil'].address
         return tfd
 
     def from_dict(self, tfd):
@@ -186,6 +187,8 @@ class ThinFace:
         self.orientation = tfd['orientation']
         self.thick_face = self.parent_thin.parent_lattice.resolve_address(
             tfd['thick_face'])
+        self.titin_fil = self.parent_thin.parent_lattice.resolve_address(
+            tfd['titin_fil'])
         # Sub-structure keys
         self.binding_sites = [self.parent_thin.resolve_address(bsa) \
                               for bsa in tfd['binding_sites']]

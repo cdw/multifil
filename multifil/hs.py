@@ -322,6 +322,7 @@ class hs:
         # set act_perm as mean since prop access returns values at every point
         sd['actin_permissiveness'] = np.mean(self.actin_permissiveness)
         sd['thick'] = [t.to_dict() for t in sd['thick']]
+        sd['titin'] = [t.to_dict() for t in sd['titin']]
         sd['thin'] = [t.to_dict() for t in sd['thin']]
         return sd
 
@@ -353,6 +354,8 @@ class hs:
         if 'last_transitions' in sd.keys():
             self.last_transitions = sd['last_transitions']
         # Sub-structure keys
+        for data, titin in zip(sd['titin'], self.titin):
+            titin.from_dict(data)
         for data, thick in zip(sd['thick'], self.thick):
             thick.from_dict(data)
         for data, thin in zip(sd['thin'], self.thin):
@@ -651,6 +654,8 @@ class hs:
             return self.thick[address[1]]
         elif address[0] in ['crown', 'thick_face', 'xb']:
             return self.thick[address[1]].resolve_address(address)
+        elif address[0] == 'titin':
+            return self.titin[address[1]]
         import warnings
         warnings.warn("Unresolvable address: %s"%str(address))
 

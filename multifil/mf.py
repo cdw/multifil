@@ -213,6 +213,7 @@ class ThickFace:
         thickfaced.pop('index')
         thickfaced.pop('parent_filament')
         thickfaced['thin_face'] = thickfaced['thin_face'].address
+        thickfaced['titin_fil'] = thickfaced['titin_fil'].address
         thickfaced['xb'] = [xb.to_dict() for xb in thickfaced['xb']]
         thickfaced['xb_by_crown'] = [xb.address if xb is not None else None\
                                      for xb in thickfaced['xb_by_crown']]
@@ -235,6 +236,8 @@ class ThickFace:
         # Sub-structure and remote keys
         self.thin_face = self.parent_filament.parent_lattice.resolve_address(
             tfd['thin_face'])
+        self.titin_fil = self.parent_filament.parent_lattice.resolve_address(
+            tfd['titin_fil'])
         self.xb_by_crown = [self.resolve_address(xba) if xba is not None \
                             else None for xba in tfd['xb_by_crown']]
         for data, xb in zip(tfd['xb'], self.xb):
@@ -257,7 +260,7 @@ class ThickFace:
     def radialtension(self):
         """Sum of the absolute values of radial force for every myosin"""
         radial = [crossbridge.radialforce() for crossbridge in self.xb]
-        radial.append(self.titin.radialforce())
+        radial.append(self.titin_fil.radialforce())
         return sum(radial)
 
     def radialforce(self):

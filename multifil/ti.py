@@ -32,6 +32,7 @@ class Titin:
         """
         # Name of the titin molecule
         self.index = index
+        self.address = ('titin', index)
         # A connection to the parent lattice
         self.parent_lattice = parent_lattice
         # Location of the titin filament relative thick filament
@@ -48,6 +49,40 @@ class Titin:
         # Create the constants that determine force NOTE IMPROVE DOC
         self.a = a
         self.b = b
+
+    def to_dict(self):
+        """Create a JSON compatible representation of titin
+
+        Usage example: json.dumps(titin.to_dict(), indent=1)
+
+        Current output includes:
+            a: force constant
+            b: force constant
+            address: largest to most local, indices for finding this
+            rest: rest length
+        """
+        td = self.__dict__.copy()
+        td.pop('index')
+        td.pop('parent_lattice')
+        td['thick_face'] = td['thick_face'].address
+        td['thin_face'] = td['thin_face'].address
+        return td
+
+    def from_dict(self, td):
+        """ Load values from a thin face dict. Values read in correspond to
+        the current output documented in to_dict.
+        """
+        # Check for index mismatch
+        read, current = tuple(td['address']), self.address
+        assert read==current, "index mismatch at %s/%s"%(read, current)
+        # Local keys
+        self.a = td['a']
+        self.b = td['b']
+        self.rest = td['rest']
+        self.thick_face = self.parent_lattice.resolve_address(
+            td['thick_face'])
+        self.thin_face = self.parent_lattice.resolve_address(
+            td['thin_face'])
 
     def angle(self):
         """Caclulate the angle the titin makes relative to thick filament"""
