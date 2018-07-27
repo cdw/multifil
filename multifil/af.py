@@ -210,17 +210,20 @@ class ThinFace:
         hiding_line = self.parent_thin.hiding_line
         axial_location = max(hiding_line, axial_location)
         face_locs = [site.axial_location for site in self.binding_sites]
-        close_index = np.searchsorted(face_locs, axial_location)
-        # If not using a very short SL, where the end face loc is closest
-        if close_index != len(face_locs):
-            dists = np.abs((face_locs[close_index] - axial_location,
-                            face_locs[close_index-1] - axial_location))
+        next_index = np.searchsorted(face_locs, axial_location)
+        prev_index = next_index - 1
+        # If not using a very short SL, where the end face loc is closest, 
+        # then find distances to two closest locations
+        if next_index != len(face_locs):
+            dists = np.abs((face_locs[prev_index] - axial_location,
+                            face_locs[next_index] - axial_location))
         else:
-            return self.binding_sites[close_index-1] # If so, return end
+            return self.binding_sites[prev_index] # If at end, return end
+        # If prior site was closer, give it, else give next
         if dists[0] < dists[1]:
-            return self.binding_sites[close_index]
+            return self.binding_sites[prev_index]
         else:
-            return self.binding_sites[close_index + 1]
+            return self.binding_sites[next_index]
 
     def radialforce(self):
         """What is the radial force this face experiences?
@@ -461,7 +464,7 @@ class ThinFilament:
         elif address[0] == 'bs':
             return self.binding_sites[address[2]]
         import warnings
-        warnings.warn("Unresolvable address: %s"%address)
+        warnings.warn("Unresolvable address: %s"%str(address))
 
     def set_thick_faces(self, thick_faces):
         """Set the adjacent thick faces and associated values
@@ -495,12 +498,12 @@ class ThinFilament:
         return (self.rests[-1] - (self.z_line - self.axial[-1])) * self.k
 
     def axial_force_of_each_node(self, axial_locations=None):
-        """Return a list of the thin filament axial force at each node
+        """Return a list of the XB derived axial force at each node 
 
         Parameters:
             axial_locations: location of each node (optional)
         Returns:
-            axial_forces: a list of the axial force at each node
+            axial_forces: a list of the XB axial force at each node 
         """
         if axial_locations == None:
             axial_forces = [site.axialforce() for site in self.binding_sites]
@@ -543,7 +546,7 @@ class ThinFilament:
         return forces
 
     def radial_force_of_each_node(self):
-        """The radial force produced at each binding site node
+        """Radial force produced by XBs at each binding site node 
 
         Parameters:
             None

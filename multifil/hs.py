@@ -9,11 +9,8 @@ Created by Dave Williams on 2009-12-31.
 import sys
 import os
 import multiprocessing as mp
-import unittest
 import time
-import ujson as json
 import numpy as np
-import scipy.optimize as opt
 from . import af
 from . import mf
 
@@ -27,7 +24,7 @@ class hs:
         Parameters:
             lattice_spacing: the surface-to-surface distance (14.0)
             z_line: the length of the half-sarcomere (1250)
-            poisson: poisson ratio obeyed when z-line changes. Signficant
+            poisson: poisson ratio obeyed when z-line changes. Significant
                 values are:
                     * 0.5 - constant volume
                     * 0.0 - constant lattice spacing, default value
@@ -578,7 +575,7 @@ class hs:
         elif address[0] in ['crown', 'thick_face', 'xb']:
             return self.thick[address[1]].resolve_address(address)
         import warnings
-        warnings.warn("Unresolvable address: %s"%address)
+        warnings.warn("Unresolvable address: %s"%str(address))
 
     def display_axial_force_end(self):
         """ Show an end view with axial forces of face pairs
